@@ -13,19 +13,19 @@ namespace hoshizora {
     using i8 = int8_t;
     using i16 = int16_t;
     using i32 = int32_t;
-    using i64 = ino64_t;
+    using i64 = int64_t;
     using f32 = float;
     using f64 = double;
     using skip_t = std::nullptr_t[0];
 
     namespace heap {
         template<class Type>
-        static inline Type *array(size_t length) {
+        static inline Type *array(u64 length) {
             return static_cast<Type *>(malloc(sizeof(Type) * length));
         }
 
         template<class Type>
-        static inline Type *array0(size_t length) {
+        static inline Type *array0(u64 length) {
             auto arr = array<Type>(length);
             // TODO
             for(size_t i = 0; i < length; ++i) {

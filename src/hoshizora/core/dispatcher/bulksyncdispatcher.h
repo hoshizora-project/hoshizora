@@ -29,6 +29,7 @@ namespace hoshizora {
             const auto num_vertices = prev_graph.num_vertices;
             const auto num_edges = prev_graph.num_edges;
 
+            // scatter
             for (ID src = 0; src < num_vertices; ++src) {
                 for (ID i = 0, end = prev_graph.vertex_degrees[src]; i < end; ++i) {
                     auto dst = prev_graph.vertex_neighbors[src][i];
@@ -37,6 +38,8 @@ namespace hoshizora {
                             = kernel.scatter(src, dst, prev_graph.v_data[src]);
                 }
             }
+
+            // gather
             for (ID src = 0; src < num_vertices; ++src) {
                 for (ID i = 0, end = prev_graph.vertex_degrees[src]; i < end; ++i) {
                     auto dst = prev_graph.vertex_neighbors[src][i];
@@ -47,6 +50,7 @@ namespace hoshizora {
                 }
             }
 
+            // sum and apply
             for (ID dst = 0; dst < num_vertices; ++dst) {
                 for (ID i = 0, end = prev_graph.in_degrees[dst]; i < end; ++i) {
                     auto src = prev_graph.in_neighbors[dst][i];
