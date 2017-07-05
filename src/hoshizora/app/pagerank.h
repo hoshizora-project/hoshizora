@@ -2,8 +2,8 @@
 #define HOSHIZORA_PAGERANK_H
 
 
-#include <hoshizora/core/util/includes.h>
-#include <hoshizora/core/api/kernel.h>
+#include "hoshizora/core/util/includes.h"
+#include "hoshizora/core/api/kernel.h"
 
 namespace hoshizora {
     template<class Graph>

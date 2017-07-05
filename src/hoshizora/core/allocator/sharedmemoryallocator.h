@@ -1,7 +1,7 @@
 #ifndef HOSHIZORA_SHAREDMEMORYEXECUTOR_H
 #define HOSHIZORA_SHAREDMEMORYEXECUTOR_H
 
-#include <hoshizora/core/allocator/allocator.h>
+#include "hoshizora/core/allocator/allocator.h"
 
 namespace hoshizora {
     struct SharedMemoryAllocator : Allocator {

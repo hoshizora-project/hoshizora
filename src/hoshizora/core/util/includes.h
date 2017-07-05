@@ -1,9 +1,9 @@
 #ifndef HOSHIZORA_INCLUDES_H
 #define HOSHIZORA_INCLUDES_H
 
-
 #include <cstdint>
 #include <stdlib.h>
+#include "hoshizora/core/util/includes.h"
 
 namespace hoshizora {
     using u8 = uint8_t;

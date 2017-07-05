@@ -25,14 +25,14 @@ namespace hoshizora {
         ID num_vertices;
         ID num_edges;
 
-        ID *vertex_degrees; // [num_vertices]
-        ID *vertex_offsets; // [num_vertices]
-        ID *vertex_data; // [num_edges]
+        ID *out_degrees; // [num_vertices]
+        ID *out_offsets; // [num_vertices]
+        ID *out_data; // [num_edges]
         ID *in_degrees;
         ID *in_offsets;
         ID *in_data;
         ID **in_neighbors;
-        ID **vertex_neighbors; // [num_vertices][degrees[i]]
+        ID **out_neighbors; // [num_vertices][degrees[i]]
         ID *forward_indices; // [num_edges]
         VProp *v_props; // [num_vertices]
         EProp *e_props; // [num_edges]
@@ -43,12 +43,12 @@ namespace hoshizora {
         Graph() {}
 
         Graph(ID num_vertices, ID num_edges,
-              ID *vertex_offsets, ID *vertex_data,
+              ID *out_offsets, ID *out_data,
               ID *forward_indices,
               VProp *v_props, EProp *e_props,
               VData *v_data, EData *e_data
         ) : num_vertices(num_vertices), num_edges(num_edges),
-            vertex_offsets(vertex_offsets), vertex_data(vertex_data),
+            out_offsets(out_offsets), out_data(out_data),
             forward_indices(forward_indices),
             v_props(v_props), e_props(e_props),
             v_data(v_data), e_data(e_data),
@@ -59,13 +59,13 @@ namespace hoshizora {
         }
 
         Graph(ID num_vertices, ID num_edges,
-              ID *vertex_offsets, ID *vertex_data,
+              ID *out_offsets, ID *out_data,
               ID *forward_indices,
               VProp *v_props, EProp *e_props,
               VData *v_data, EData *e_data,
               bool *active_flags
         ) : num_vertices(num_vertices), num_edges(num_edges),
-            vertex_offsets(vertex_offsets), vertex_data(vertex_data),
+            out_offsets(out_offsets), out_data(out_data),
             forward_indices(forward_indices),
             v_props(v_props), e_props(e_props),
             v_data(v_data), e_data(e_data),
@@ -79,12 +79,12 @@ namespace hoshizora {
         }
 
         inline void set_degrees() {
-            vertex_degrees = heap::array<ID>(num_vertices);
+            out_degrees = heap::array<ID>(num_vertices);
 
             for (ID i = 0, end = num_vertices - 1; i < end; ++i) {
-                vertex_degrees[i] = vertex_offsets[i + 1] - vertex_offsets[i];
+                out_degrees[i] = out_offsets[i + 1] - out_offsets[i];
             }
-            vertex_degrees[num_vertices - 1] = num_edges - vertex_offsets[num_vertices - 1];
+            out_degrees[num_vertices - 1] = num_edges - out_offsets[num_vertices - 1];
         }
 
         inline void set_in_degrees() {
@@ -105,10 +105,10 @@ namespace hoshizora {
         }
 
         inline void set_neighbors() {
-            vertex_neighbors = heap::array<ID *>(num_vertices);
+            out_neighbors = heap::array<ID *>(num_vertices);
             ID offset = 0; // <= num_edges
             for (ID i = 0; i < num_vertices; ++i) {
-                vertex_neighbors[i] = &vertex_data[vertex_offsets[i]];
+                out_neighbors[i] = &out_data[out_offsets[i]];
             }
         }
 
@@ -121,9 +121,9 @@ namespace hoshizora {
             }
 
             for (ID from = 0; from < num_vertices; ++from) {
-                for (ID j = 0, end = vertex_degrees[from]; j < end; ++j) {
-                    auto to = vertex_neighbors[from][j];
-                    forward_indices[vertex_offsets[from] + j] = in_offsets[to] + counts[to];
+                for (ID j = 0, end = out_degrees[from]; j < end; ++j) {
+                    auto to = out_neighbors[from][j];
+                    forward_indices[out_offsets[from] + j] = in_offsets[to] + counts[to];
                     counts[to]++;
                 }
             }
@@ -145,7 +145,7 @@ namespace hoshizora {
             /*
             auto gg = _Graph(
                     prev.num_vertices, prev.num_edges,
-                    prev.vertex_offsets, prev.vertex_data,
+                    prev.out_offsets, prev.out_data,
                     prev.forward_indices,
                     prev.v_props, prev.e_props,
 //                    heap::array0<VProp>(prev.num_vertices),
@@ -163,10 +163,10 @@ namespace hoshizora {
             auto g = _Graph::Empty();
             g.num_vertices = prev.num_vertices;
             g.num_edges = prev.num_edges;
-            g.vertex_degrees = prev.vertex_degrees;
-            g.vertex_offsets = prev.vertex_offsets;
-            g.vertex_neighbors = prev.vertex_neighbors;
-            g.vertex_data = prev.vertex_data;
+            g.out_degrees = prev.out_degrees;
+            g.out_offsets = prev.out_offsets;
+            g.out_neighbors = prev.out_neighbors;
+            g.out_data = prev.out_data;
             g.in_degrees = prev.in_degrees;
             g.in_data = prev.in_data;
             g.in_offsets = prev.in_offsets;
@@ -184,7 +184,7 @@ namespace hoshizora {
         }
 
         // TODO
-        static _Graph FromEdgeList(std::pair<ID, ID> *edge_list,
+        static _Graph FromEdgeList(const std::pair<ID, ID> *edge_list,
                                    size_t len) {
             assert(len > 0 && edge_list != nullptr);
 
@@ -200,22 +200,22 @@ namespace hoshizora {
             auto num_vertices = std::max(tmp_max, vec.back().first) + 1; // 0-based
             auto num_edges = len;
 
-            auto vertex_offsets = heap::array<ID>(num_vertices);
-            auto vertex_data = heap::array<ID>(num_edges);
+            auto out_offsets = heap::array<ID>(num_vertices);
+            auto out_data = heap::array<ID>(num_edges);
 
             auto src = 0u;
-            vertex_offsets[src++] = 0u;
+            out_offsets[src++] = 0u;
             auto prev_src = vec[0].first;
             for (auto i = 0u; i < num_edges; ++i) {
                 auto curr = vec[i];
                 if (prev_src != curr.first) {
                     prev_src = curr.first;
-                    vertex_offsets[src++] = i;
+                    out_offsets[src++] = i;
                 }
-                vertex_data[i] = curr.second;
+                out_data[i] = curr.second;
             }
             for (auto i = src; i <= num_vertices; ++i) {
-                vertex_offsets[i] = num_edges;
+                out_offsets[i] = num_edges;
             }
 
             // set inverse
@@ -248,8 +248,8 @@ namespace hoshizora {
             auto g = _Graph::Empty();
             g.num_vertices = num_vertices;
             g.num_edges = num_edges;
-            g.vertex_offsets = vertex_offsets;
-            g.vertex_data = vertex_data;
+            g.out_offsets = out_offsets;
+            g.out_data = out_data;
             g.in_offsets = in_offsets;
             g.in_data = in_data;
             g.set_degrees();
@@ -257,6 +257,8 @@ namespace hoshizora {
             g.set_in_degrees();
             g.set_in_neighbors();
             g.set_forward_indices();
+            g.set_v_data();
+            g.set_e_data();
             return g;
         }
     };

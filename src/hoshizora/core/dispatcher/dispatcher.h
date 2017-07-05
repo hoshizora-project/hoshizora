@@ -1,6 +1,7 @@
 #ifndef HOSHIZORA_DISPATCHER_H
 #define HOSHIZORA_DISPATCHER_H
 
+#include "hoshizora/core/util/includes.h"
 
 namespace hoshizora {
     template<class Kernel, class Executor>

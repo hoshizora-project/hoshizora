@@ -1,6 +1,7 @@
 #ifndef HOSHIZORA_EXECUTOR_H
 #define HOSHIZORA_EXECUTOR_H
 
+#include "hoshizora/core/util/includes.h"
 
 namespace hoshizora {
     struct Allocator {
