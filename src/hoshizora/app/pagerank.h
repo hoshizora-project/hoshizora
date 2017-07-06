@@ -15,7 +15,7 @@ namespace hoshizora {
 
         constexpr static auto RANDOM_RESET_PROP = 0.15;
 
-        VData init(const ID src, const ID dst, const Graph &graph) {
+        VData init(const ID src, const Graph &graph) {
             return 1.0;
         }
 
@@ -32,6 +32,10 @@ namespace hoshizora {
             return curr_val;
         }
 
+        VData zero(const ID dst, const Graph &graph) {
+            return 0.0;
+        }
+
         VData sum(const ID src, const ID dst,
                   const VData v_val, const EData e_val, const Graph &graph) {
 //            std::cout << src << "->" << dst << ": " << v_val << ", " << e_val << std::endl;
@@ -41,9 +45,9 @@ namespace hoshizora {
         VData apply(const ID dst, const VData prev_val,
                     const VData curr_val, const Graph &graph) {
 //            return RANDOM_RESET_PROP / graph.num_vertices
-//                   + (1 - RANDOM_RESET_PROP) * (prev_val + curr_val);
-            std::cout << "->" << dst << ": " << prev_val << ", " << curr_val << std::endl;
-            return prev_val + curr_val;
+//                   + (1 - RANDOM_RESET_PROP) * curr_val;
+//            std::cout << "->" << dst << ": " << prev_val << ", " << curr_val << std::endl;
+            return curr_val;
         }
 
         string result(const Graph &graph) {

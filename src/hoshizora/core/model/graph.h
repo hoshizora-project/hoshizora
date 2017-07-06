@@ -141,7 +141,7 @@ namespace hoshizora {
             return _Graph();
         }
 
-        static _Graph Next(_Graph &prev) {
+        static void Next(_Graph &prev, _Graph &curr) {
             /*
             auto gg = _Graph(
                     prev.num_vertices, prev.num_edges,
@@ -160,6 +160,7 @@ namespace hoshizora {
 //                    : heap::array0<EProp>(prev.num_edges),
                     prev.active_flags);
                     */
+            /*
             auto g = _Graph::Empty();
             g.num_vertices = prev.num_vertices;
             g.num_edges = prev.num_edges;
@@ -173,24 +174,34 @@ namespace hoshizora {
             g.in_neighbors = prev.in_neighbors;
             g.forward_indices = prev.forward_indices;
             g.active_flags = prev.active_flags;
-            if (prev.v_data != nullptr) {
-//                free(g.v_data);
-                debug::print("set");
-                g.v_data = prev.v_data;
-            } else {
-                g.set_v_data();
-            }
+
+            g.v_data = prev.v_data;
             g.v_props = prev.v_props;
-            if (prev.e_data != nullptr) {
-//                free(g.e_data);
-                g.e_data = prev.e_data;
-            } else {
-                g.set_e_data();
-            }
+
+            g.e_data = prev.e_data;
             g.e_props = prev.e_props;
+            
             prev.set_v_data();
             prev.set_e_data();
+
+            debug::print(prev.v_data);
+            debug::print(g.v_data);
+
             return g;
+             */
+
+            auto *v_data = prev.v_data;
+            prev.v_data = curr.v_data;
+            curr.v_data = v_data;
+            auto *e_data = prev.e_data;
+            prev.e_data = curr.e_data;
+            curr.e_data = e_data;
+
+//            prev.set_v_data();
+//            prev.set_e_data();
+
+//            debug::print(prev.v_data);
+//            debug::print(curr.v_data);
         }
 
         template<class Executor>

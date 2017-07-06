@@ -14,13 +14,16 @@ namespace hoshizora {
         Graph curr_graph;
 
         BulkSyncDispatcher(Graph &graph) {
-            prev_graph = graph;
-            curr_graph = Graph::Next(graph);
-        }
+//            prev_graph = graph;
+//            curr_graph = Graph::Next(graph);
 
-        void move_next() {
-            prev_graph = curr_graph;
-            curr_graph = Graph::Next(prev_graph);
+            prev_graph = graph;
+            curr_graph = graph;
+            curr_graph.set_v_data();
+            curr_graph.set_e_data();
+
+//            debug::print(prev_graph.v_data);
+//            debug::print(curr_graph.v_data);
         }
 
         std::string run() {
@@ -28,18 +31,18 @@ namespace hoshizora {
             const auto num_vertices = prev_graph.num_vertices;
             const auto num_edges = prev_graph.num_edges;
 
-            constexpr auto num_iters = 2u;
+            constexpr auto num_iters = 1u;
             for (auto iter = 0u; iter < num_iters; ++iter) {
-                if (iter > 0) {
-                    move_next();
-                }
-
-                // init
-                for (ID src = 0; src < num_vertices; ++src) {
-                    for (ID i = 0, end = prev_graph.out_degrees[src]; i < end; ++i) {
-                        const auto index = prev_graph.out_offsets[src] + i;
-                        prev_graph.v_data[index] = kernel.init(src, 0, prev_graph);
+                if (iter == 0) {
+                    // init
+                    for (ID src = 0; src < num_vertices; ++src) {
+                        for (ID i = 0, end = prev_graph.out_degrees[src]; i < end; ++i) {
+                            const auto index = prev_graph.out_offsets[src] + i;
+                            prev_graph.v_data[index] = kernel.init(src, prev_graph);
+                        }
                     }
+                } else {
+                    Graph::Next(prev_graph, curr_graph);
                 }
 
                 // scatter
@@ -67,6 +70,7 @@ namespace hoshizora {
 
                 // sum and apply
                 for (ID dst = 0; dst < num_vertices; ++dst) {
+                    curr_graph.v_data[dst] = kernel.zero(dst, prev_graph); // TODO
                     for (ID i = 0, end = prev_graph.in_degrees[dst]; i < end; ++i) {
                         const auto src = prev_graph.in_neighbors[dst][i];
                         const auto index = prev_graph.in_offsets[dst] + i;
