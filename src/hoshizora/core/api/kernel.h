@@ -10,11 +10,22 @@ namespace hoshizora {
         using VData = typename Graph::_VData;
         using ID = typename Graph::_ID;
 
-        virtual VData init() = 0;
-        virtual EData scatter(ID src, ID dst, VData val) = 0;
-        virtual EData gather(ID src, ID dst, VData v_val, EData e_val) = 0;
-        virtual VData sum(ID src, ID dst, VData v_val, EData e_val) = 0;
-        virtual VData apply(ID dst, VData prev_val, VData curr_val) = 0;
+        virtual VData init(const ID src, const ID dst,
+                           const Graph &graph) = 0;
+
+        virtual EData scatter(const ID src, const ID dst,
+                              const VData v_val, const Graph &graph) = 0;
+
+        virtual EData gather(const ID src, const ID dst,
+                             const EData prev_val, const EData curr_val, const Graph &graph) = 0;
+
+        virtual VData sum(const ID src, const ID dst,
+                          const VData v_val, const EData e_val, const Graph &graph) = 0;
+
+        virtual VData apply(const ID dst, const VData prev_val,
+                            const VData curr_val, const Graph &graph) = 0;
+
+        virtual string result(const Graph &graph)=0;
     };
 }
 

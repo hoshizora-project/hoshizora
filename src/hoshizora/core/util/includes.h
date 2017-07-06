@@ -28,10 +28,17 @@ namespace hoshizora {
         static inline Type *array0(u64 length) {
             auto arr = array<Type>(length);
             // TODO
-            for(size_t i = 0; i < length; ++i) {
+            for (size_t i = 0; i < length; ++i) {
                 arr[i] = 0;
             }
             return arr;
+        }
+    }
+
+    namespace debug {
+        template<class T>
+        static inline void print(T const &el) {
+            std::cout << el << std::endl;
         }
     }
 }

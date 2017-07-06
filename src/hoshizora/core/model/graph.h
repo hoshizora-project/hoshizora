@@ -171,9 +171,25 @@ namespace hoshizora {
             g.in_data = prev.in_data;
             g.in_offsets = prev.in_offsets;
             g.in_neighbors = prev.in_neighbors;
+            g.forward_indices = prev.forward_indices;
             g.active_flags = prev.active_flags;
-            g.set_v_data();
-            g.set_e_data();
+            if (prev.v_data != nullptr) {
+//                free(g.v_data);
+                debug::print("set");
+                g.v_data = prev.v_data;
+            } else {
+                g.set_v_data();
+            }
+            g.v_props = prev.v_props;
+            if (prev.e_data != nullptr) {
+//                free(g.e_data);
+                g.e_data = prev.e_data;
+            } else {
+                g.set_e_data();
+            }
+            g.e_props = prev.e_props;
+            prev.set_v_data();
+            prev.set_e_data();
             return g;
         }
 
