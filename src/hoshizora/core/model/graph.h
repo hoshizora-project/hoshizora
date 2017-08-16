@@ -34,6 +34,8 @@ namespace hoshizora {
         ID **in_neighbors;
         ID **out_neighbors; // [num_vertices][degrees[i]]
         ID *forward_indices; // [num_edges]
+        u32 *out_boundaries;
+        u32 *in_boundaries;
         VProp *v_props; // [num_vertices]
         EProp *e_props; // [num_edges]
         VData *v_data; // [num_vertices]
@@ -78,20 +80,46 @@ namespace hoshizora {
             set_e_data();
         }
 
+        constexpr static u32 num_threads = 4;
+
         inline void set_degrees() {
             out_degrees = heap::array<ID>(num_vertices);
 
+            // init boundaries
+            out_boundaries = heap::array<u32>(num_threads);
+            u32 j = 0;
+            u32 chunk_size = num_edges / num_threads;
+            u32 boundary = chunk_size;
             for (ID i = 0, end = num_vertices - 1; i < end; ++i) {
                 out_degrees[i] = out_offsets[i + 1] - out_offsets[i];
+
+                // set boundary
+                if (out_degrees[i] > boundary) {
+                    out_boundaries[j++] = i;
+                    boundary += chunk_size;
+                }
             }
+
             out_degrees[num_vertices - 1] = num_edges - out_offsets[num_vertices - 1];
         }
 
         inline void set_in_degrees() {
             in_degrees = heap::array<ID>(num_vertices);
 
+            // init boundaries
+            in_boundaries = heap::array<u32>(num_threads);
+            u32 j = 0;
+            u32 chunk_size = num_edges / num_threads;
+            u32 boundary = chunk_size;
+
             for (ID i = 0, end = num_vertices - 1; i < end; ++i) {
                 in_degrees[i] = in_offsets[i + 1] - in_offsets[i];
+
+                // set boundary
+                if (in_degrees[i] > boundary) {
+                    in_boundaries[j++] = i;
+                    boundary += chunk_size;
+                }
             }
             in_degrees[num_vertices - 1] = num_edges - in_offsets[num_vertices - 1];
         }
@@ -130,10 +158,12 @@ namespace hoshizora {
         }
 
         inline void set_v_data() {
+            free(v_data);
             v_data = heap::array0<VData>(num_vertices);
         }
 
         inline void set_e_data() {
+            free(e_data);
             e_data = heap::array0<EData>(num_edges);
         }
 
@@ -190,12 +220,17 @@ namespace hoshizora {
             return g;
              */
 
-            auto *v_data = prev.v_data;
-            prev.v_data = curr.v_data;
-            curr.v_data = v_data;
-            auto *e_data = prev.e_data;
-            prev.e_data = curr.e_data;
-            curr.e_data = e_data;
+//            auto *v_data = prev.v_data;
+//            prev.v_data = curr.v_data;
+//            curr.v_data = v_data;
+//            auto *e_data = prev.e_data;
+//            prev.e_data = curr.e_data;
+//            curr.e_data = e_data;
+
+
+
+            swap(prev.v_data, curr.v_data);
+            swap(prev.e_data, curr.e_data);
 
 //            prev.set_v_data();
 //            prev.set_e_data();
@@ -217,31 +252,36 @@ namespace hoshizora {
 
             using VVType = std::pair<ID, ID>;
             auto vec = std::vector<VVType>(edge_list, edge_list + len); // [(from, to)]
+
             std::sort(begin(vec), end(vec), [](const VVType &l, const VVType &r) {
                 return l.second < r.second;
             });
             auto tmp_max = vec.back().second;
-            std::sort(begin(vec), end(vec), [](const VVType &l, const VVType &r) {
+            std::stable_sort(begin(vec), end(vec), [](const VVType &l, const VVType &r) {
                 return l.first < r.first;
             });
+
             auto num_vertices = std::max(tmp_max, vec.back().first) + 1; // 0-based
             auto num_edges = len;
 
             auto out_offsets = heap::array<ID>(num_vertices);
             auto out_data = heap::array<ID>(num_edges);
 
-            auto src = 0u;
-            out_offsets[src++] = 0u;
+//            auto src = 0u;
+            out_offsets[0] = 0u;
             auto prev_src = vec[0].first;
             for (auto i = 0u; i < num_edges; ++i) {
                 auto curr = vec[i];
                 if (prev_src != curr.first) {
+                    for(auto j=prev_src+1;j<=curr.first;++j) {
+                        out_offsets[j] = i;
+                    }
                     prev_src = curr.first;
-                    out_offsets[src++] = i;
+//                    out_offsets[src++] = i;
                 }
                 out_data[i] = curr.second;
             }
-            for (auto i = src; i <= num_vertices; ++i) {
+            for (auto i = prev_src+1; i <= num_vertices; ++i) {
                 out_offsets[i] = num_edges;
             }
 
@@ -252,23 +292,26 @@ namespace hoshizora {
             std::sort(begin(vec), end(vec), [](const VVType &l, const VVType &r) {
                 return l.second < r.second;
             });
-            std::sort(begin(vec), end(vec), [](const VVType &l, const VVType &r) {
+            std::stable_sort(begin(vec), end(vec), [](const VVType &l, const VVType &r) {
                 return l.first < r.first;
             });
             auto in_offsets = heap::array<ID>(num_vertices);
             auto in_data = heap::array<ID>(num_edges);
-            src = 0u;
-            in_offsets[src++] = 0u;
+//            src = 0u;
+            in_offsets[0] = 0u;
             prev_src = vec[0].first;
             for (auto i = 0u; i < num_edges; ++i) {
                 auto curr = vec[i];
                 if (prev_src != curr.first) {
+                    for(auto j=prev_src+1;j<=curr.first;++j) {
+                        in_offsets[j] = i;
+                    }
                     prev_src = curr.first;
-                    in_offsets[src++] = i;
+//                    in_offsets[src++] = i;
                 }
                 in_data[i] = curr.second;
             }
-            for (auto i = src; i <= num_vertices; ++i) {
+            for (auto i = prev_src+1; i <= num_vertices; ++i) {
                 in_offsets[i] = num_edges;
             }
 
@@ -286,6 +329,17 @@ namespace hoshizora {
             g.set_forward_indices();
             g.set_v_data();
             g.set_e_data();
+
+
+/*
+            for(u32 src=0;src<num_vertices;++src){
+                for(u32 i=0,end=g.out_degrees[src];i<end;++i){
+                    const auto dst = g.out_neighbors[src][i];
+                    debug::print(to_string(src)+", "+to_string(dst));
+                }
+            }
+            */
+
             return g;
         }
     };

@@ -13,17 +13,15 @@ namespace hoshizora {
         Graph prev_graph;
         Graph curr_graph;
 
-        BulkSyncDispatcher(Graph &graph) {
+        explicit BulkSyncDispatcher(Graph &graph) {
 //            prev_graph = graph;
 //            curr_graph = Graph::Next(graph);
 
             prev_graph = graph;
             curr_graph = graph;
+
             curr_graph.set_v_data();
             curr_graph.set_e_data();
-
-//            debug::print(prev_graph.v_data);
-//            debug::print(curr_graph.v_data);
         }
 
         std::string run() {
@@ -36,9 +34,11 @@ namespace hoshizora {
                 if (iter == 0) {
                     // init
                     for (ID src = 0; src < num_vertices; ++src) {
+                        prev_graph.v_data[src] = kernel.init(src, prev_graph);
+
                         for (ID i = 0, end = prev_graph.out_degrees[src]; i < end; ++i) {
                             const auto index = prev_graph.out_offsets[src] + i;
-                            prev_graph.v_data[index] = kernel.init(src, prev_graph);
+//                            prev_graph.e_data[index] = kernel.init(src, prev_graph);
                         }
                     }
                 } else {
@@ -50,6 +50,7 @@ namespace hoshizora {
                     for (ID i = 0, end = prev_graph.out_degrees[src]; i < end; ++i) {
                         const auto dst = prev_graph.out_neighbors[src][i];
                         const auto index = prev_graph.out_offsets[src] + i;
+
                         curr_graph.e_data[prev_graph.forward_indices[index]]
                                 = kernel.scatter(src, dst, prev_graph.v_data[src], prev_graph);
                     }
