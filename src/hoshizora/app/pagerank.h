@@ -45,10 +45,19 @@ namespace hoshizora {
         }
 
         string result(const Graph &graph) {
-            string res = "";
-            for (ID src = 0; src < graph.num_vertices; src+=10000) {
-                res = res + to_string(src) + ": " + to_string(graph.v_data[src]) + "\n";
+//            debug::print(graph.num_vertices);
+
+/*
+            string res = "{\"nodes\":[";
+            for (ID i = 0; i < graph.num_vertices; i += 1000) {
+                res = res +
+                        "{\"id\":" +to_string(i) + ", \"pagerank\":" + to_string(graph.v_data[i]) + "},\n";
             }
+            res = res + "]}";
+
+            */
+            string res = "";
+
             return res;
         }
     };
