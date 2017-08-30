@@ -18,135 +18,110 @@ namespace hoshizora {
         const ID num_vertices;
         const ID num_edges;
 
-        /*2,3
-        u32 num_threads = thread::hardware_concurrency();
-        std::vector<std::function<void()>> bulk;
+        u32 num_threads = 1;
+//        u32 num_threads = thread::hardware_concurrency();
         BulkSyncThreadPool thread_pool;
-         */
 
-//        vector<u32> out_boundaries;
-//        vector<u32> in_boundaries;
+        // TODO: それぞれ次数の累積から求める, len == num_threads + 1
+        vector<u32> out_boundaries; // 仮
+        vector<u32> in_boundaries; // 仮
 
-        explicit BulkSyncDispatcher(Graph &graph)
-                : prev_graph(graph), curr_graph(graph),
-                  num_vertices(graph.num_vertices), num_edges(graph.num_edges) {
-            curr_graph.set_v_data();
-            curr_graph.set_e_data();
-
-//            out_boundaries = {0, 100, 200, 350, num_vertices - 1}; // 仮
-//            in_boundaries = {0, 90, 150, 400, num_vertices - 1}; // 仮
-        }
-
-        /*3
         explicit BulkSyncDispatcher(Graph &graph)
                 : prev_graph(graph), curr_graph(graph), thread_pool(num_threads),
                   num_vertices(graph.num_vertices), num_edges(graph.num_edges) {
             curr_graph.set_v_data();
             curr_graph.set_e_data();
 
-            bulk.reserve(num_threads);
-            for (u32 i = 0; i < num_threads; ++i) {
-                bulk.emplace_back(nullptr);
-            }
+            out_boundaries = {0, 100, 200, 350, num_vertices - 1}; // 仮
+            in_boundaries = {0, 90, 150, 400, num_vertices - 1}; // 仮
         }
-         */
 
-        /*2
         template<class Func>
-        void push(Func f) {
+        void push_outbound(Func f) {
+            std::vector<std::function<void()>> bulk;
             for (u32 i = 0; i < num_threads; ++i) {
-                bulk[i] = [&, i]() {
+                bulk.emplace_back([&, i]() {
                     for (ID src = out_boundaries[i]; src < out_boundaries[i + 1]; ++src) {
                         f(src);
                     }
-                    this_thread::sleep_for(std::chrono::seconds(i));
+//                    this_thread::sleep_for(std::chrono::seconds(i));
                     debug::print(this_thread::get_id());
-                };
+                });
             }
             thread_pool.push_bulk(bulk);
         }
-         */
+
+        template<class Func>
+        void push_inbound(Func f) {
+            std::vector<std::function<void()>> bulk;
+            for (u32 i = 0; i < num_threads; ++i) {
+                bulk.emplace_back([&, i]() {
+                    for (ID dst = in_boundaries[i]; dst < in_boundaries[i + 1]; ++dst) {
+                        f(dst);
+                    }
+//                    this_thread::sleep_for(std::chrono::seconds(i));
+                    debug::print(this_thread::get_id());
+                });
+            }
+            thread_pool.push_bulk(bulk);
+        }
+
+        template<class Func>
+        void test(Func f) {
+            std::vector<std::function<void()>> bulk;
+            for (u32 i = 0; i < num_threads; ++i) {
+                bulk.emplace_back([&, i]() {
+                    for (ID dst = in_boundaries[i]; dst < in_boundaries[i + 1]; ++dst) {
+                        f(dst);
+                    }
+//                    this_thread::sleep_for(std::chrono::seconds(i));
+                    debug::print(this_thread::get_id());
+                });
+            }
+
+
+            std::vector<std::queue<std::function<void()>>> q;
+            std::queue<function<void()>> qu;
+            q.emplace_back(qu);
+            q[0].push(std::move(bulk[0]));
+
+            auto th = thread([&]() {
+                const auto &g = std::move(q[0].front());
+                q[0].pop();
+                g();
+            });
+            th.join();
+        }
 
         std::string run() {
             Kernel kernel;
 
-            u32 num_threads = thread::hardware_concurrency();
-            std::vector<std::function<void()>> bulk(4, []() {});
-            BulkSyncThreadPool thread_pool(num_threads);
-
-
-            // TODO: それぞれ次数の累積から求める, len == num_threads + 1
-            vector<u32> out_boundaries = {0, 100, 200, 350, num_vertices - 1}; // 仮
-            vector<u32> in_boundaries = {0, 90, 150, 400, num_vertices - 1}; // 仮
-
-            constexpr auto num_iters = 2u;
+            constexpr auto num_iters = 1;
             for (auto iter = 0u; iter < num_iters; ++iter) {
                 if (iter == 0) {
-
-//                    /*1
-                    for (u32 i = 0; i < num_threads; ++i) {
-                        bulk[i] = [&, i]() {
-                            for (ID src = out_boundaries[i]; src < out_boundaries[i + 1]; ++src) {
-                                prev_graph.v_data[src] = kernel.init(src, prev_graph);
-
-                                for (ID j = 0, end = prev_graph.out_degrees[src]; j < end; ++j) {
-                                    const auto index = prev_graph.out_offsets[src] + j;
-//                                prev_graph.e_data[index] = kernel.init(src, prev_graph);
-                                }
-                            }
-                        };
-                    }
-                    thread_pool.push_bulk(bulk);
-                    debug::print("");
-//                     */
-
-                    /*3
-                    for (u32 i = 0; i < num_threads; ++i) {
-                        bulk[i] = [&, i]() {
-                            for (ID src = out_boundaries[i]; src < out_boundaries[i + 1]; ++src) {
-                                prev_graph.v_data[src] = kernel.init(src, prev_graph);
-
-                                for (ID j = 0, end = prev_graph.out_degrees[src]; j < end; ++j) {
-                                    const auto index = prev_graph.out_offsets[src] + j;
-//                                prev_graph.e_data[index] = kernel.init(src, prev_graph);
-                                }
-                            }
-                        };
-                    }
-                    thread_pool.push_bulk(bulk);
-                    debug::print("");
-                    */
-
-                    /*2
-                   push([&](ID src) {
-                       prev_graph.v_data[src] = kernel.init(src, prev_graph);
-
-                       for (ID i = 0, end = prev_graph.out_degrees[src]; i < end; ++i) {
-                           const auto index = prev_graph.out_offsets[src] + i;
-//                                prev_graph.e_data[index] = kernel.init(src, prev_graph);
-                       }
-                   });
-                    */
-
-                    // init
-                    /*
-                    for (ID src = 0; src < num_vertices; ++src) {
+                    test([&](ID src) {
                         prev_graph.v_data[src] = kernel.init(src, prev_graph);
 
                         for (ID i = 0, end = prev_graph.out_degrees[src]; i < end; ++i) {
                             const auto index = prev_graph.out_offsets[src] + i;
-//                            prev_graph.e_data[index] = kernel.init(src, prev_graph);
+//                                prev_graph.e_data[index] = kernel.init(src, prev_graph);
                         }
-                    }
-                     */
+                    });
+
+                    push_outbound([&](ID src) {
+                        prev_graph.v_data[src] = kernel.init(src, prev_graph);
+
+                        for (ID i = 0, end = prev_graph.out_degrees[src]; i < end; ++i) {
+                            const auto index = prev_graph.out_offsets[src] + i;
+//                                prev_graph.e_data[index] = kernel.init(src, prev_graph);
+                        }
+                    });
                 } else {
                     Graph::Next(prev_graph, curr_graph);
                 }
 
-
-
                 // scatter and gather
-                for (ID src = 0; src < num_vertices; ++src) {
+                push_outbound([&](ID src) {
                     for (ID i = 0, end = prev_graph.out_degrees[src]; i < end; ++i) {
                         const auto dst = prev_graph.out_neighbors[src][i];
                         const auto index = prev_graph.out_offsets[src] + i;
@@ -158,10 +133,10 @@ namespace hoshizora {
                                                 kernel.scatter(src, dst, prev_graph.v_data[src], prev_graph),
                                                 prev_graph);
                     }
-                }
+                });
 
                 // sum and apply
-                for (ID dst = 0; dst < num_vertices; ++dst) {
+                push_inbound([&](ID dst) {
                     curr_graph.v_data[dst] = kernel.zero(dst, prev_graph); // TODO
                     for (ID i = 0, end = prev_graph.in_degrees[dst]; i < end; ++i) {
                         const auto src = prev_graph.in_neighbors[dst][i];
@@ -174,22 +149,11 @@ namespace hoshizora {
                     curr_graph.v_data[dst] = kernel.apply(dst,
                                                           prev_graph.v_data[dst],
                                                           curr_graph.v_data[dst], prev_graph);
-                }
+                });
             }
 
-
-
-//            vector<function<void()>> bulk;
-//            for (u32 x = 0; x < 4; ++x) {
-//                bulk.emplace_back([]() {
-//                    debug::print(this_thread::get_id());
-//                });
-//            }
-//            this_thread::sleep_for(std::chrono::seconds(2));
-            for (u32 i = 0; i < num_threads; ++i) {
-                bulk[i] = nullptr;
-            }
-            thread_pool.terminate();
+            debug::print("pushed");
+            thread_pool.terminate_if_empty();
             debug::print("fin");
 
 /*

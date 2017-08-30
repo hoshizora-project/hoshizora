@@ -14,9 +14,11 @@ namespace hoshizora {
         std::vector<std::queue<std::function<void()>>> tasks;
         std::vector<bool> sync_flags;
         bool terminate_flag = false;
-        u32 num_threads = 0;
+        bool terminate_if_empty_flag = false;
+        u32 num_threads;
+        std::mutex mtx; // 仮
 
-        inline void flipWait(u32 n) {
+        inline void bulkWait(u32 n) {
             sync_flags[n] = !sync_flags[n];
             while (true) {
                 auto breakable = true;
@@ -27,25 +29,29 @@ namespace hoshizora {
             }
         }
 
-        BulkSyncThreadPool(u32 num_threads) : num_threads(num_threads) {
-            for (auto n = 0u; n < num_threads; ++n) {
+        explicit BulkSyncThreadPool(u32 num_threads) : num_threads(num_threads) {
+            for (u32 n = 0; n < num_threads; ++n) {
                 std::queue<std::function<void()>> queue;
                 sync_flags.emplace_back(false);
                 tasks.emplace_back(queue);
             }
 
-            for (auto n = 0u; n < num_threads; ++n) {
+            for (u32 n = 0; n < num_threads; ++n) {
                 pool.emplace_back(std::thread([&, n]() {
                     // TODO: thread affinity
                     debug::print("created");
 
-                    while (!terminate_flag) {
+                    while (!terminate_flag
+                           && !(terminate_if_empty_flag && tasks[n].empty())) {
                         if (tasks[n].empty()) continue;
 
-                        const auto &task = tasks[n].front();
+                        // `const auto &` seems to break function object,
+                        // make `this` empty (?)
+                        const auto task = tasks[n].front();
+
                         task();
-                        tasks[n].pop();
-                        flipWait(n);
+                        mtx.lock(); tasks[n].pop(); mtx.unlock(); // TODO: concurrent_queue
+                        bulkWait(n);
                     }
                 }));
             }
@@ -55,7 +61,9 @@ namespace hoshizora {
             assert(num_threads == bulk.size());
 
             for (u32 n = 0; n < num_threads; ++n) {
+                mtx.lock();
                 tasks[n].push(std::move(bulk[n]));
+                mtx.unlock();
             }
         }
 
@@ -67,7 +75,7 @@ namespace hoshizora {
         }
 
         void terminate_if_empty() {
-
+            terminate_if_empty_flag = true;
             for (auto &thread: pool) {
                 thread.join();
             }
