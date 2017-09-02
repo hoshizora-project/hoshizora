@@ -45,10 +45,7 @@ namespace hoshizora {
                            && !(terminate_if_empty_flag && tasks[n].empty())) {
                         if (tasks[n].empty()) continue;
 
-                        // `const auto &` seems to break function object,
-                        // make `this` empty (?)
                         const auto task = tasks[n].front();
-
                         task();
                         mtx.lock(); tasks[n].pop(); mtx.unlock(); // TODO: concurrent_queue
                         bulkWait(n);
