@@ -4,6 +4,7 @@
 #include <vector>
 #include <queue>
 #include <thread>
+#include <mutex>
 #include <functional>
 #include <hoshizora/core/util/includes.h>
 #include <assert.h>
