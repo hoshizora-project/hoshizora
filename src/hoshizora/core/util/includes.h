@@ -3,6 +3,8 @@
 
 #include <cstdint>
 #include <stdlib.h>
+#include <vector>
+#include <cassert>
 #include "hoshizora/core/util/includes.h"
 
 namespace hoshizora {
@@ -32,6 +34,69 @@ namespace hoshizora {
                 arr[i] = 0;
             }
             return arr;
+        }
+
+        template<class T>
+        struct DiscreteArray {
+            std::vector<T *> data;
+            std::vector<u32> range;
+
+            DiscreteArray() = default;
+
+            DiscreteArray(std::vector<T *> &data, std::vector<u32> &lengths)
+                    : data(data), range(lengths) {
+                assert(data.size() == lengths.size());
+
+                u32 sum = 0;
+                for (auto &r: range) {
+                    sum += r;
+                    r = sum;
+                }
+            }
+
+            /*
+            const T &operator[](u32 index) const {
+                const auto n = std::distance(begin(range),
+                                             upper_bound(begin(range), end(range), index));
+                return data[n][index - range[n]];
+            }*/
+
+
+            T &operator[](u32 index) &{
+                const auto n = std::distance(begin(range),
+                                             upper_bound(begin(range), end(range), index));
+                return data[n][index - range[n]];
+            }
+
+            /*
+            T operator[](u32 index) &&{
+                const auto n = std::distance(begin(range),
+                                             upper_bound(begin(range), end(range), index));
+                return data[n][index - range[n]];
+            }*/
+
+            /*
+            T &operator[](u32 index, u32 n) {
+                return data[n][index - range[n]];
+            }
+             */
+
+            void add(u32 node, T *datum, u32 length) {
+                nodes.emplace_back(node);
+                data.emplace_back(datum);
+                range.emplace_back(range.back() + length);
+            }
+
+            T get(u32 index, u32 hint) {
+                return data[hint][index - range[hint]];
+            }
+        };
+    }
+
+    namespace mock {
+        template<class T>
+        static inline T *numa_alloc_onnode(size_t size, int node) {
+            return nullptr;
         }
     }
 

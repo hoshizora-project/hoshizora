@@ -14,8 +14,7 @@ namespace hoshizora {
         using _Graph = Graph<u32, skip_t, skip_t, f32, f32>;
         debug::print("started");
         //        auto edge_list = IO::fromFile0("edge_list");
-        auto edge_list = IO::fromFile0("../data/email-Eu-core.hszr");
-//        auto edge_list = IO::fromFile0("../data/web-Google.hszr");
+        auto edge_list = IO::fromFile0("../data/web-Google.hszr");
         debug::print("loaded");
         auto graph = _Graph::FromEdgeList(edge_list.data(), edge_list.size());
         debug::print("converted");

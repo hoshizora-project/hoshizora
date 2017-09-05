@@ -45,7 +45,7 @@ namespace hoshizora {
         EData *e_data; // [num_edges]
         bool *active_flags; // [num_vertices]
 
-        Graph() {}
+        Graph() = default;
 
         Graph(ID num_vertices, ID num_edges,
               ID *out_offsets, ID *out_data,
@@ -171,12 +171,10 @@ namespace hoshizora {
         }
 
         inline void set_v_data() {
-            free(v_data);
             v_data = heap::array0<VData>(num_vertices);
         }
 
         inline void set_e_data() {
-            free(e_data);
             e_data = heap::array0<EData>(num_edges);
         }
 
