@@ -41,12 +41,16 @@ namespace hoshizora {
             std::vector<T *> data;
             std::vector<u32> range;
 
-            DiscreteArray() = default;
+            DiscreteArray() {
+                range.emplace_back(0);
+            }
 
             DiscreteArray(std::vector<T *> &data, std::vector<u32> &lengths)
-                    : data(data), range(lengths) {
+                    : data(data) {
                 assert(data.size() == lengths.size());
 
+                range.emplace_back(0);
+                copy(begin(lengths), end(lengths), back_inserter(range));
                 u32 sum = 0;
                 for (auto &r: range) {
                     sum += r;
@@ -81,13 +85,12 @@ namespace hoshizora {
             }
              */
 
-            void add(u32 node, T *datum, u32 length) {
-                nodes.emplace_back(node);
+            void add(T *datum, u32 length) {
                 data.emplace_back(datum);
-                range.emplace_back(range.back() + length);
+                range.emplace_back((range.empty() ? 0 : range.back()) + length);
             }
 
-            T get(u32 index, u32 hint) {
+            T &get(u32 index, u32 hint) {
                 return data[hint][index - range[hint]];
             }
         };
@@ -96,7 +99,7 @@ namespace hoshizora {
     namespace mock {
         template<class T>
         static inline T *numa_alloc_onnode(size_t size, int node) {
-            return nullptr;
+            return reinterpret_cast<T *>(malloc(size));
         }
     }
 

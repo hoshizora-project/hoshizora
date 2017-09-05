@@ -178,20 +178,16 @@ namespace hoshizora {
             e_data = heap::array0<EData>(num_edges);
         }
 
-        static _Graph Empty() {
-            return _Graph();
-        }
-
         static void Next(_Graph &prev, _Graph &curr) {
             swap(prev.v_data, curr.v_data);
             swap(prev.e_data, curr.e_data);
         }
 
-        template<class Executor>
-        static _Graph FromEdgeListWithExecutor() {
-            auto hoge = Executor::alloc();
-            return Empty(); //
-        }
+//        template<class Executor>
+//        static _Graph FromEdgeListWithExecutor() {
+//            auto hoge = Executor::alloc();
+//            return Empty(); //
+//        }
 
         // TODO: poor performance
         // *require packed index* (process in preprocessing)
@@ -265,7 +261,7 @@ namespace hoshizora {
                 in_offsets[i] = num_edges;
             }
 
-            auto g = _Graph::Empty();
+            auto g = _Graph();
             g.num_vertices = num_vertices;
             g.num_edges = num_edges;
             g.out_offsets = out_offsets;
