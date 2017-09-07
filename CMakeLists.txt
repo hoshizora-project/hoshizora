@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.7)
 project(hoshizora)
 
 set(CMAKE_CXX_COMPILER clang++)
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS_DEBUG "-Wall -O0 -g")
 set(CMAKE_CXX_FLAGS "-O3 -pthread")
 

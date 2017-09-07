@@ -12,12 +12,12 @@
 namespace hoshizora {
     struct BulkSyncThreadPool {
         std::vector<std::thread> pool;
-        std::vector<std::queue<std::function<void()>>> tasks;
+        std::vector<std::queue<std::function<void(u32)>>> tasks;
         std::vector<bool> sync_flags;
         bool terminate_flag = false;
         bool terminate_if_empty_flag = false;
         u32 num_threads;
-        std::mutex mtx; // 仮
+        std::mutex mtx; // TODO
 
         inline void bulkWait(u32 n) {
             sync_flags[n] = !sync_flags[n];
@@ -31,31 +31,31 @@ namespace hoshizora {
         }
 
         explicit BulkSyncThreadPool(u32 num_threads) : num_threads(num_threads) {
-            for (u32 n = 0; n < num_threads; ++n) {
-                std::queue<std::function<void()>> queue;
+            for (u32 thread_id = 0; thread_id < num_threads; ++thread_id) {
+                std::queue<std::function<void(u32)>> queue;
                 sync_flags.emplace_back(false);
                 tasks.emplace_back(queue);
             }
 
-            for (u32 n = 0; n < num_threads; ++n) {
-                pool.emplace_back(std::thread([&, n]() {
+            for (u32 thread_id = 0; thread_id < num_threads; ++thread_id) {
+                pool.emplace_back(std::thread([&, thread_id]() {
                     // TODO: thread affinity
                     debug::print("created");
 
                     while (!terminate_flag
-                           && !(terminate_if_empty_flag && tasks[n].empty())) {
-                        if (tasks[n].empty()) continue;
+                           && !(terminate_if_empty_flag && tasks[thread_id].empty())) {
+                        if (tasks[thread_id].empty()) continue;
 
-                        const auto task = tasks[n].front();
-                        task();
-                        mtx.lock(); tasks[n].pop(); mtx.unlock(); // TODO: concurrent_queue
-                        bulkWait(n);
+                        const auto &task = tasks[thread_id].front();
+                        task(thread_id);
+                        mtx.lock(); tasks[thread_id].pop(); mtx.unlock(); // TODO: concurrent_queue
+                        bulkWait(thread_id);
                     }
                 }));
             }
         }
 
-        void push_bulk(std::vector<std::function<void()>> &bulk) {
+        void push_bulk(std::vector<std::function<void(u32)>> &bulk) {
             assert(num_threads == bulk.size());
 
             for (u32 n = 0; n < num_threads; ++n) {
