@@ -22,7 +22,7 @@ namespace hoshizora {
 
         EData scatter(const ID src, const ID dst,
                       const VData v_val, const Graph &graph) {
-            return v_val / graph.out_degrees(src, 0); // TODO: numa_id
+            return v_val / graph.out_degrees(src, 0, 0); // TODO: numa_id
         }
 
         EData gather(const ID src, const ID dst, const VData prev_val,

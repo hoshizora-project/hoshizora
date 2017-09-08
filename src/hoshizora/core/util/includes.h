@@ -44,6 +44,7 @@ namespace hoshizora {
             return arr;
         }
 
+        // TODO: SIMD-aware
         template<class T>
         struct DiscreteArray {
             // TODO: Redundant on each numa node
@@ -143,7 +144,7 @@ namespace hoshizora {
 
             // TODO
             // faster than normal index access on a single array
-            T operator()(u32 index, u32 n) const {
+            T operator()(u32 index, u32 n, u32 dummy) const {
                 // if constexpr (support_numa) data[n][index - range[n]] else data[0][index];
                 return data[n][index - range[n]];
             }
@@ -218,7 +219,7 @@ namespace hoshizora {
                 if (thread_id == num_threads - 1 || numa_id != mock::thread_to_numa(thread_id + 1)) {
                     f(numa_id, lower, boundaries[thread_id + 1]);
 
-                    numa_id++;
+                    numa_id++; // TODO: mock::thread_to_numa
                     lower = boundaries[thread_id + 1];
                 }
             }

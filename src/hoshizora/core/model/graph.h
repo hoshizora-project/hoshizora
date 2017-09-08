@@ -7,6 +7,7 @@
 #include <cassert>
 #include <thread>
 #include <iostream>
+#include <cstring>
 #include "hoshizora/core/util/includes.h"
 
 using namespace std;
@@ -34,21 +35,21 @@ namespace hoshizora {
         ID *tmp_in_offsets;
         ID *tmp_in_indices;
 
-        heap::DiscreteArray<ID> out_degrees; // [num_vertices]
-        heap::DiscreteArray<ID> out_offsets; // [num_vertices]
-        heap::DiscreteArray<ID> out_indices; // [num_edges]
+        heap::DiscreteArray <ID> out_degrees; // [num_vertices]
+        heap::DiscreteArray <ID> out_offsets; // [num_vertices]
+        heap::DiscreteArray <ID> out_indices; // [num_edges]
         heap::DiscreteArray<ID *> out_neighbors; // [num_vertices][degrees[i]]
-        heap::DiscreteArray<ID> in_degrees;
-        heap::DiscreteArray<ID> in_offsets;
-        heap::DiscreteArray<ID> in_indices;
+        heap::DiscreteArray <ID> in_degrees;
+        heap::DiscreteArray <ID> in_offsets;
+        heap::DiscreteArray <ID> in_indices;
         heap::DiscreteArray<ID *> in_neighbors;
         ID *forward_indices; // [num_edges]
-        u32 *out_boundaries;
-        u32 *in_boundaries;
+        u64 *out_boundaries;
+        u64 *in_boundaries;
         VProp *v_props; // [num_vertices]
         EProp *e_props; // [num_edges]
-        heap::DiscreteArray<VData> v_data; // [num_vertices]
-        heap::DiscreteArray<EData> e_data; // [num_edges]
+        heap::DiscreteArray <VData> v_data; // [num_vertices]
+        heap::DiscreteArray <EData> e_data; // [num_edges]
         heap::DiscreteArray<bool> active_flags; // [num_vertices]
 
         bool out_degrees_is_initialized = false;
@@ -70,12 +71,55 @@ namespace hoshizora {
 
         u32 num_numa_nodes = 2;
 
+        void set_out_boundaries() {
+            assert(!out_offsets_is_initialized);
+
+            const auto chunk_size = num_edges / num_threads;
+            out_boundaries = heap::array0<ID>(num_threads + 1);
+            for (u32 thread_id = 1; thread_id < num_threads; ++thread_id) {
+                out_boundaries[thread_id] =
+                        static_cast<u64>(std::distance(tmp_out_offsets,
+                                                       std::lower_bound(tmp_out_offsets,
+                                                                        tmp_out_offsets +
+                                                                        num_vertices,
+                                                                        chunk_size * thread_id)));
+            }
+            out_boundaries[num_threads] = num_vertices;
+
+            for (u32 i = 0; i <= num_threads; ++i) {
+                debug::print(out_boundaries[i]);
+            }
+
+            out_boundaries_is_initialized = true;
+        }
+
+        void set_in_boundaries() {
+            assert(!in_offsets_is_initialized);
+
+            const auto chunk_size = num_edges / num_threads;
+            in_boundaries = heap::array0<ID>(num_threads + 1);
+            for (u32 thread_id = 1; thread_id < num_threads; ++thread_id) {
+                in_boundaries[thread_id] =
+                        static_cast<u64>(std::distance(tmp_in_offsets,
+                                                       std::lower_bound(tmp_in_offsets,
+                                                                        tmp_in_offsets + num_vertices,
+                                                                        chunk_size * thread_id)));
+            }
+            in_boundaries[num_threads] = num_vertices;
+
+            for (u32 i = 0; i <= num_threads; ++i) {
+                debug::print(in_boundaries[i]);
+            }
+
+            in_boundaries_is_initialized = true;
+        }
+
         void set_out_offsets() {
             assert(out_boundaries_is_initialized);
 
             // FIXME
             if (num_numa_nodes == 1) {
-                out_offsets.add(tmp_out_offsets, num_vertices);
+                out_offsets.add(tmp_out_offsets, num_vertices + 1);
             } else {
                 /*
                 u32 start = 0;
@@ -100,16 +144,83 @@ namespace hoshizora {
                 }*/
 
                 parallel::each_numa_node(out_boundaries,
-                                         [&](u32 numa_id, u32 lower, u32 upper) mutable {
-                                             const auto size = upper - lower;
+                                         [&](u32 numa_id, u32 lower, u32 upper) {
+                                             const auto size = numa_id != num_numa_nodes - 1
+                                                               ? upper - lower
+                                                               : upper - lower + 1; // include cap
                                              const auto offsets = heap::array<u32>(size);
                                              std::memcpy(offsets, tmp_out_offsets + lower, size * sizeof(u32));
                                              out_offsets.add(offsets, size);
                                          });
 
-                out_offsets_is_initialized = true;
                 free(tmp_out_offsets); // TODO: maybe numa_free
+                out_offsets_is_initialized = true;
             }
+        }
+
+        void set_out_degrees() {
+            assert(out_boundaries_is_initialized);
+            assert(out_offsets_is_initialized);
+
+            parallel::each_numa_node(out_boundaries, [&](u32 numa_id, u32 lower, u32 upper) {
+                const auto size = upper - lower;
+                const auto degrees = heap::array<ID>(size);
+                for (u32 i = lower; i < upper; ++i) {
+                    degrees[i - lower] = out_offsets(i + 1, numa_id) - out_offsets(i, numa_id);
+                }
+                degrees[size - 1] = (numa_id != num_numa_nodes - 1
+                                     ? out_offsets(upper, numa_id + 1)
+                                     : out_offsets(upper, numa_id))
+                                    - out_offsets(upper - 1, numa_id);
+
+                out_degrees.add(degrees, size);
+            });
+
+
+            /*
+            // for boundaries
+            out_boundaries = heap::array<u32>(num_threads + 1);
+            out_boundaries[0] = 0;
+            u32 thread_id = 0;
+            const u32 chunk_size = num_edges / num_threads;
+            u32 boundary = chunk_size;
+
+            u32 offset = 0;
+            auto out_degree = new std::vector<ID>(); // TODO: numa-local
+            out_degree->reserve(chunk_size);
+
+            for (ID i = 0, end = num_vertices - 1; i < end; ++i) {
+                out_degree->emplace_back(tmp_out_offsets[i + 1] - tmp_out_offsets[i]);
+
+                // set boundaries
+                if (tmp_out_offsets[i + 1] >= boundary) {
+                    // FIXME
+                    if (mock::thread_to_numa(thread_id) != mock::thread_to_numa(thread_id + 1)) {
+                        // numa-local discrete array
+                        out_degrees.add(std::move(*out_degree));
+                        out_degree = new std::vector<ID>();
+                        out_degree->reserve(chunk_size);
+                    }
+                    out_boundaries[++thread_id] = i;
+
+                    boundary = thread_id != num_threads
+                               // halfway
+                               ? (thread_id + 1) * chunk_size
+                               // last (never hit on `if (tmp_out_offsets[i + 1] >= boundary)`)
+                               : num_edges + 1;
+                }
+            }
+
+            // end of boundaries
+            out_boundaries[num_threads] = num_vertices;
+
+            // end of degrees
+            out_degree->emplace_back(num_edges - tmp_out_offsets[num_vertices - 1]);
+            out_degrees.add(std::move(*out_degree));
+             */
+
+            // finalize
+            out_degrees_is_initialized = true;
         }
 
         void set_in_offsets() {
@@ -142,7 +253,7 @@ namespace hoshizora {
                 }*/
 
                 parallel::each_numa_node(in_boundaries,
-                                         [&](u32 numa_id, u32 lower, u32 upper) mutable {
+                                         [&](u32 numa_id, u32 lower, u32 upper) {
                                              const auto size = upper - lower;
                                              const auto offsets = heap::array<u32>(size);
                                              std::memcpy(offsets, tmp_in_offsets + lower, size * sizeof(u32));
@@ -193,9 +304,11 @@ namespace hoshizora {
                 }*/
 
                 parallel::each_numa_node(out_boundaries,
-                                         [&](u32 numa_id, u32 lower, u32 upper) mutable {
+                                         [&](u32 numa_id, u32 lower, u32 upper) {
                                              const auto start = out_offsets(lower, numa_id);
-                                             const auto end = out_offsets(upper, numa_id);
+                                             const auto end = numa_id != num_numa_nodes - 1
+                                                              ? out_offsets(upper, numa_id + 1)
+                                                              : out_offsets(upper, numa_id);
                                              const auto size = end - start;
                                              const auto indices = heap::array<u32>(size);
                                              std::memcpy(indices, tmp_out_indices + start, size * sizeof(u32));
@@ -258,52 +371,6 @@ namespace hoshizora {
                 in_indices_is_initialized = true;
                 free(tmp_in_indices); // TODO: maybe numa_free
             }
-        }
-
-        void set_out_degrees() {
-            // for boundaries
-            out_boundaries = heap::array<u32>(num_threads + 1);
-            out_boundaries[0] = 0;
-            u32 thread_id = 0;
-            const u32 chunk_size = num_edges / num_threads;
-            u32 boundary = chunk_size;
-
-            u32 offset = 0;
-            auto out_degree = new std::vector<ID>(); // TODO: numa-local
-            out_degree->reserve(chunk_size);
-
-            for (ID i = 0, end = num_vertices - 1; i < end; ++i) {
-                out_degree->emplace_back(tmp_out_offsets[i + 1] - tmp_out_offsets[i]);
-
-                // set boundaries
-                if (tmp_out_offsets[i + 1] >= boundary) {
-                    // FIXME
-                    if (mock::thread_to_numa(thread_id) != mock::thread_to_numa(thread_id + 1)) {
-                        // numa-local discrete array
-                        out_degrees.add(std::move(*out_degree));
-                        out_degree = new std::vector<ID>();
-                        out_degree->reserve(chunk_size);
-                    }
-                    out_boundaries[++thread_id] = i;
-
-                    boundary = thread_id != num_threads
-                               // halfway
-                               ? (thread_id + 1) * chunk_size
-                               // last (never hit on `if (tmp_out_offsets[i + 1] >= boundary)`)
-                               : num_edges + 1;
-                }
-            }
-
-            // end of boundaries
-            out_boundaries[num_threads] = num_vertices;
-
-            // end of degrees
-            out_degree->emplace_back(num_edges - tmp_out_offsets[num_vertices - 1]);
-            out_degrees.add(std::move(*out_degree));
-
-            // finalize
-            out_degrees_is_initialized = true;
-            out_boundaries_is_initialized = true;
         }
 
         void set_in_degrees() {
@@ -375,28 +442,8 @@ namespace hoshizora {
                                              out_neighbor->emplace_back(
                                                      &out_indices(out_offsets(i, numa_id), numa_id));
                                          }
-
-                                         auto a1 = (*out_neighbor)[456908];
-                                         auto a2 = (*out_neighbor)[456909];
-                                         auto a3 = (*out_neighbor)[456910];
-                                         auto b1 = out_indices(out_offsets(456908, 0), 0);
-                                         auto b2 = out_indices(out_offsets(456909, 0), 0);
-                                         auto b3 = out_indices(out_offsets(456910, 0), 0);
                                          out_neighbors.add(std::move(*out_neighbor));
                                      });
-
-            auto x1 = out_neighbors(456908, 0);
-            auto x2 = out_neighbors(456909, 0);
-//            auto x3 = out_neighbors(456910, 0);
-            auto x4 = out_neighbors(456911, 1);
-            auto y1 = out_degrees(456908, 0);
-            auto y2 = out_degrees(456909, 0);
-//            auto y3 = out_degrees(456910, 0);
-            auto y4 = out_degrees(456911, 1);
-            auto z1 = x1[0];
-            auto z2 = x2[0];
-//            auto z3 = x3[0];
-            auto z4 = x4[0];
 
             out_neighbors_is_initialized = true;
         }
@@ -423,8 +470,6 @@ namespace hoshizora {
                                          auto in_neighbor = new std::vector<ID *>();
                                          in_neighbor->reserve(upper - lower);
                                          for (ID i = lower; i < upper; ++i) {
-                                             auto x = in_offsets(i, numa_id);
-                                             auto y = in_indices(x, numa_id);
                                              in_neighbor->emplace_back(
                                                      &in_indices(in_offsets(i, numa_id), numa_id));
                                          }
@@ -435,10 +480,10 @@ namespace hoshizora {
         }
 
         void set_forward_indices() {
+            assert(out_boundaries_is_initialized);
             assert(out_offsets_is_initialized);
             assert(out_degrees_is_initialized);
             assert(out_neighbors_is_initialized);
-            assert(out_boundaries_is_initialized);
 
             forward_indices = heap::array<ID>(num_edges); // TODO: should be numa-local
 
@@ -457,19 +502,6 @@ namespace hoshizora {
             }
              */
 
-            auto x1 = out_neighbors(456908, 0);
-            auto x2 = out_neighbors(456909, 0);
-            auto x3 = out_neighbors(456910, 0);
-            auto x4 = out_neighbors(456911, 1);
-            auto y1 = out_degrees(456908, 0);
-            auto y2 = out_degrees(456909, 0);
-            auto y3 = out_degrees(456910, 0);
-            auto y4 = out_degrees(456911, 1);
-            auto z1 = x1[0];
-            auto z2 = x2[0];
-            auto z3 = x3[0];
-            auto z4 = x4[0];
-
             auto counts = std::vector<ID>(num_vertices, 0);
             parallel::each_thread(out_boundaries,
                                   [&](u32 numa_id, u32 thread_id, u32 lower, u32 upper) { ;
@@ -478,7 +510,7 @@ namespace hoshizora {
                                           for (ID i = 0, end = out_degrees(src, numa_id); i < end; ++i) {
                                               const auto dst = neighbor[i];
                                               forward_indices[out_offsets(src, numa_id) + i] =
-                                                      out_offsets(dst, numa_id) + counts[dst];
+                                                      out_offsets(dst) + counts[dst];
                                               counts[dst]++;
                                           }
                                       }
@@ -559,13 +591,14 @@ namespace hoshizora {
             auto num_vertices = std::max(tmp_max, vec.back().first) + 1; // 0-based
             auto num_edges = len;
 
-            auto out_offsets = heap::array<ID>(num_vertices);
-            auto out_indices = heap::array<ID>(num_edges);
+            auto out_offsets = heap::array<ID>(num_vertices + 1); // all vertices + cap
+            auto out_indices = heap::array<ID>(num_edges); // all edges
 
             out_offsets[0] = 0u;
             auto prev_src = vec[0].first;
-            for (auto i = 0u; i < num_edges; ++i) {
+            for (u32 i = 0; i < num_edges; ++i) {
                 auto curr = vec[i];
+                // next source vertex
                 if (prev_src != curr.first) {
                     // loop for vertices whose degree is 0
                     for (auto j = prev_src + 1; j <= curr.first; ++j) {
@@ -617,10 +650,12 @@ namespace hoshizora {
             g.tmp_out_indices = out_indices;
             g.tmp_in_offsets = in_offsets;
             g.tmp_in_indices = in_indices;
-            g.set_out_degrees();
+            g.set_out_boundaries();
             g.set_out_offsets();
+            g.set_out_degrees();
             g.set_out_indices();
             g.set_out_neighbor();
+            g.set_in_boundaries();
             g.set_in_degrees();
             g.set_in_offsets();
             g.set_in_indices();
