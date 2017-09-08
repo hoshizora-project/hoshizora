@@ -169,7 +169,7 @@ namespace hoshizora {
     namespace parallel {
         static constexpr bool support_numa = true;
         static const u32 num_threads = std::thread::hardware_concurrency();
-        static const u32 num_numa_node = 2;
+        static const u32 num_numa_nodes = 2;
     }
 
     namespace mock {
@@ -218,6 +218,28 @@ namespace hoshizora {
             for (u32 thread_id = 0; thread_id < num_threads; ++thread_id) {
                 if (thread_id == num_threads - 1 || numa_id != mock::thread_to_numa(thread_id + 1)) {
                     f(numa_id, lower, boundaries[thread_id + 1]);
+
+                    numa_id++; // TODO: mock::thread_to_numa
+                    lower = boundaries[thread_id + 1];
+                }
+            }
+        }
+
+        template<class Func>
+        static inline void each_numa_node(const u32 *const boundaries,
+                                          const heap::DiscreteArray<u32> &offsets,
+                                          Func f) {
+            u32 numa_id = 0;
+            u32 lower = boundaries[0];
+
+            for (u32 thread_id = 0; thread_id < num_threads; ++thread_id) {
+                if (thread_id == num_threads - 1 || numa_id != mock::thread_to_numa(thread_id + 1)) {
+                    const auto start = offsets(lower, numa_id, 0);
+                    const auto end = numa_id != num_numa_nodes - 1
+                                     ? offsets(boundaries[thread_id + 1], numa_id + 1, 0)
+                                     : offsets(boundaries[thread_id + 1], numa_id, 0);
+
+                    f(numa_id, start, end);
 
                     numa_id++; // TODO: mock::thread_to_numa
                     lower = boundaries[thread_id + 1];
