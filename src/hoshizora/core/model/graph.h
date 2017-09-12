@@ -286,6 +286,7 @@ namespace hoshizora {
             assert(out_offsets_is_initialized);
             assert(out_degrees_is_initialized);
             assert(out_neighbors_is_initialized);
+            assert(in_offsets_is_initialized);
 
             forward_indices = heap::array<ID>(num_edges); // TODO: should be numa-local
 
@@ -297,7 +298,7 @@ namespace hoshizora {
                                           for (ID i = 0, end = out_degrees(src, numa_id); i < end; ++i) {
                                               const auto dst = neighbor[i];
                                               forward_indices[out_offsets(src, numa_id) + i] =
-                                                      out_offsets(dst) + counts[dst];
+                                                      in_offsets(dst) + counts[dst];
                                               counts[dst]++;
                                           }
                                       }
