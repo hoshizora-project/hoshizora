@@ -51,24 +51,9 @@ namespace hoshizora {
             std::vector<T *> data;
             std::vector<u32> range;
 
-            DiscreteArray() {
+            DiscreteArray(){
                 range.emplace_back(0);
             }
-
-            /*
-            DiscreteArray(std::vector<T *> &data, std::vector<u32> &lengths)
-                    : data(data) {
-                assert(data.size() == lengths.size());
-
-                range.emplace_back(0);
-                copy(begin(lengths), end(lengths), back_inserter(range));
-                u32 sum = 0;
-                for (auto &r: range) {
-                    sum += r;
-                    r = sum;
-                }
-            }
-             */
 
             DiscreteArray(std::vector<T *> &data, std::vector<u32> &range)
                     : data(data), range(range) {}
@@ -137,6 +122,7 @@ namespace hoshizora {
             // significantly slower than normal index access on a single array
             [[deprecated("Recommended to call with hint")]]
             T &operator()(u32 index) {
+                // TODO: sequential search may be faster
                 const auto n = std::distance(begin(range) + 1,
                                              upper_bound(begin(range), end(range), index));
                 return data[n][index - range[n]];

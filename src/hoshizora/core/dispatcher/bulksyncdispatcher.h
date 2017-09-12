@@ -18,25 +18,36 @@ namespace hoshizora {
         const ID num_vertices;
         const ID num_edges;
 
-        const u32 num_threads = thread::hardware_concurrency(); // TODO
+        // TODO
+        const u32 num_threads = parallel::num_threads;
         BulkSyncThreadPool thread_pool;
 
         explicit BulkSyncDispatcher(Graph &graph)
-                : prev_graph(graph), curr_graph(graph), thread_pool(num_threads),
-                  num_vertices(graph.num_vertices), num_edges(graph.num_edges) {
+                : prev_graph(graph), curr_graph(graph),
+                  num_vertices(graph.num_vertices), num_edges(graph.num_edges),
+                  thread_pool(num_threads) {
             curr_graph.set_v_data();
             curr_graph.set_e_data();
         }
 
-
         template<class Func>
         void push_outbound(Func f) {
-            std::vector<std::function<void(u32)>> bulk;
+            auto bulk = new std::vector<std::function<void(u32)>>();
             for (u32 i = 0; i < num_threads; ++i) {
-                bulk.emplace_back([&, i](u32 thread_id) {
-                    for (ID src = prev_graph.out_boundaries[i]; src < prev_graph.out_boundaries[i + 1]; ++src) {
+                bulk->emplace_back([&, i](u32 thread_id) {
+                    /*
+                    for (ID src = prev_graph.out_boundaries[i];
+                         src < prev_graph.out_boundaries[i + 1];
+                         ++src) {
                         f(src, mock::thread_to_numa(thread_id));
-                    }
+                    }*/
+
+                    parallel::each_numa_node(prev_graph.out_boundaries,
+                                             [&](u32 numa_id, u32 lower, u32 upper) {
+                                                 for (ID src = lower; src < upper; ++src) {
+                                                     f(src, numa_id);
+                                                 }
+                                             });
                 });
             }
             thread_pool.push_bulk(bulk);
@@ -44,12 +55,23 @@ namespace hoshizora {
 
         template<class Func>
         void push_inbound(Func f) {
-            std::vector<std::function<void(u32)>> bulk;
+            auto bulk = new std::vector<std::function<void(u32)>>();
             for (u32 i = 0; i < num_threads; ++i) {
-                bulk.emplace_back([&, i](u32 thread_id) {
-                    for (ID dst = prev_graph.in_boundaries[i]; dst < prev_graph.in_boundaries[i + 1]; ++dst) {
+                bulk->emplace_back([&, i](u32 thread_id) {
+                    /*
+                    for (ID dst = prev_graph.in_boundaries[i];
+                         dst < prev_graph.in_boundaries[i + 1];
+                         ++dst) {
                         f(dst, mock::thread_to_numa(thread_id));
                     }
+                     */
+
+                    parallel::each_numa_node(prev_graph.in_boundaries,
+                                             [&](u32 numa_id, u32 lower, u32 upper) {
+                                                 for (ID dst = lower; dst < upper; ++dst) {
+                                                     f(dst, numa_id);
+                                                 }
+                                             });
                 });
             }
             thread_pool.push_bulk(bulk);
@@ -58,11 +80,21 @@ namespace hoshizora {
         std::string run() {
             auto kernel = Kernel();
 
-            constexpr auto num_iters = 2;
+            constexpr auto num_iters = 1;
             for (auto iter = 0u; iter < num_iters; ++iter) {
                 if (iter == 0) {
                     push_outbound([&](ID src, u32 numa_id) {
-                        prev_graph.v_data(src, numa_id) = kernel.init(src, prev_graph);
+                        if(this == nullptr){
+                          debug::print("this");
+                        } else if(&prev_graph== nullptr){
+                            debug::print("prev_graph");
+                        }else if(&prev_graph.v_data == nullptr){
+                            debug::print("prev_graph.v_data");
+                        }else if(&prev_graph.v_data.range==nullptr){
+                            debug::print("prev_graph.v_data.range");
+                        }
+
+                        prev_graph.v_data(src/*, numa_id*/) = kernel.init(src, prev_graph);
 
                         /*
                         for (ID i = 0, end = prev_graph.out_degrees[src]; i < end; ++i) {
@@ -82,9 +114,9 @@ namespace hoshizora {
                         const auto index = prev_graph.out_offsets(src, numa_id) + i;
                         const auto forwarded_index = prev_graph.forward_indices[index];
 
-                        curr_graph.e_data(forwarded_index, numa_id)
+                        curr_graph.e_data(forwarded_index/*, numa_id*/)
                                 = kernel.gather(src, dst,
-                                                prev_graph.e_data(forwarded_index, numa_id),
+                                                prev_graph.e_data(forwarded_index/*, numa_id*/),
                                                 kernel.scatter(src, dst, prev_graph.v_data(src, numa_id), prev_graph),
                                                 prev_graph);
                     }

@@ -25,7 +25,10 @@ namespace hoshizora {
         using _EData = EData;
         using _Graph = Graph<ID, VProp, EProp, VData, EData, IsDirected>;
 
-        const u32 num_threads = thread::hardware_concurrency(); // TODO
+        // TODO
+        const u32 num_threads = parallel::num_threads;
+        const u32 num_numa_nodes = parallel::num_numa_nodes;
+
 
         ID num_vertices;
         ID num_edges;
@@ -68,8 +71,6 @@ namespace hoshizora {
                   out_neighbors(heap::DiscreteArray<ID *>()),
                   in_degrees(heap::DiscreteArray<ID>()),
                   in_neighbors(heap::DiscreteArray<ID *>()) {}
-
-        u32 num_numa_nodes = 2;
 
         void set_out_boundaries() {
             assert(!out_offsets_is_initialized);
@@ -124,8 +125,8 @@ namespace hoshizora {
                                          });
 
                 free(tmp_out_offsets); // TODO: maybe numa_free
-                out_offsets_is_initialized = true;
             }
+            out_offsets_is_initialized = true;
         }
 
         void set_in_offsets() {
@@ -146,8 +147,8 @@ namespace hoshizora {
                                          });
 
                 free(tmp_in_offsets); // TODO: maybe numa_free
-                in_offsets_is_initialized = true;
             }
+            in_offsets_is_initialized = true;
         }
 
         void set_out_degrees() {
@@ -213,8 +214,8 @@ namespace hoshizora {
                                          });
 
                 free(tmp_out_indices); // TODO: maybe numa_free
-                out_indices_is_initialized = true;
             }
+            out_indices_is_initialized = true;
         }
 
         void set_in_indices() {
@@ -233,13 +234,15 @@ namespace hoshizora {
                                                               : in_offsets(upper, numa_id);
                                              const auto size = end - start;
                                              const auto indices = heap::array<u32>(size);
-                                             std::memcpy(indices, tmp_in_indices + start, size * sizeof(u32));
+                                             std::memcpy(indices,
+                                                         tmp_in_indices + start,
+                                                         size * sizeof(u32));
                                              in_indices.add(indices, size);
                                          });
 
                 free(tmp_in_indices); // TODO: maybe numa_free
-                in_indices_is_initialized = true;
             }
+            in_indices_is_initialized = true;
         }
 
         void set_out_neighbor() {
@@ -307,15 +310,18 @@ namespace hoshizora {
             assert(out_boundaries_is_initialized);
             // assert(in_boundaries_is_initialized);
 
-            v_data = heap::DiscreteArray<VData>();
+
+            v_data = std::move(heap::DiscreteArray<VData>());
 
             // TODO: consider both out and in boundaries (?)
             // If readonly, it should be allowed that duplicate vertex data
             // And should be allocated on each numa node
-            parallel::each_numa_node(out_boundaries, [&](u32 numa_id, u32 lower, u32 upper) {
-                const auto size = upper - lower;
-                v_data.add(mock::numa_alloc_onnode<VData>(sizeof(VData) * size, numa_id), size);
-            });
+            parallel::each_numa_node(out_boundaries,
+                                     [&](u32 numa_id, u32 lower, u32 upper) {
+                                         const auto size = upper - lower;
+                                         v_data.add(mock::numa_alloc_onnode<VData>(
+                                                 sizeof(VData) * size, numa_id), size);
+                                     });
         }
 
         void set_e_data() {
@@ -329,16 +335,18 @@ namespace hoshizora {
             // TODO: consider both out and in boundaries (?)
             // If readonly, it should be allowed that duplicate edge data
             // And should be allocated on each numa node
-            parallel::each_numa_node(out_boundaries, out_offsets, [&](u32 numa_id, u32 start, u32 end) {
-                const auto size = end - start;
-                e_data.add(mock::numa_alloc_onnode<EData>(sizeof(EData) * size, numa_id), size);
-            });
+            parallel::each_numa_node(out_boundaries, out_offsets,
+                                     [&](u32 numa_id, u32 start, u32 end) {
+                                         const auto size = end - start;
+                                         e_data.add(mock::numa_alloc_onnode<EData>(
+                                                 sizeof(EData) * size, numa_id), size);
+                                     });
         }
 
         static void Next(_Graph &prev, _Graph &curr) {
             // TODO
-//            std::swap(&prev.v_data, &curr.v_data);
-//            std::swap(&prev.e_data, &curr.e_data);
+            std::swap(prev.v_data, curr.v_data);
+            std::swap(prev.e_data, curr.e_data);
         }
 
 //        template<class Executor>
@@ -433,8 +441,8 @@ namespace hoshizora {
             g.set_out_indices();
             g.set_out_neighbor();
             g.set_in_boundaries();
-            g.set_in_degrees();
             g.set_in_offsets();
+            g.set_in_degrees();
             g.set_in_indices();
             g.set_in_neighbors();
             g.set_forward_indices();

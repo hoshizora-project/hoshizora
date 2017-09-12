@@ -65,6 +65,17 @@ namespace hoshizora {
             }
         }
 
+
+        void push_bulk(std::vector<std::function<void(u32)>> *bulk) {
+            assert(num_threads == bulk->size());
+
+            for (u32 n = 0; n < num_threads; ++n) {
+                mtx.lock();
+                tasks[n].push(/*std::move(*/(*bulk)[n]/*)*/);
+                mtx.unlock();
+            }
+        }
+
         void terminate() {
             terminate_flag = true;
             for (auto &thread: pool) {
