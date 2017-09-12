@@ -4,7 +4,7 @@
 #include "hoshizora/core/util/includes.h"
 
 namespace hoshizora {
-    template<class Kernel, class Executor>
+    template<class Kernel>
     class Dispatcher {
         //template<class Result>
         virtual string run() = 0;

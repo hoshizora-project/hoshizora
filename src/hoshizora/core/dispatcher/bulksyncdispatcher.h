@@ -7,8 +7,8 @@
 #include <hoshizora/core/util/bulksync_thread_pool.h>
 
 namespace hoshizora {
-    template<class Kernel, class Allocator>
-    struct BulkSyncDispatcher : Dispatcher<Kernel, Allocator> {
+    template<class Kernel>
+    struct BulkSyncDispatcher : Dispatcher<Kernel> {
         using Graph = typename Kernel::_Graph;
         using ID = typename Kernel::_Graph::_ID;
 

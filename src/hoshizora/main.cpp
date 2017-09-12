@@ -4,7 +4,6 @@
 #include "hoshizora/core/model/graph.h"
 #include "hoshizora/core/dispatcher/bulksyncdispatcher.h"
 #include "hoshizora/app/pagerank.h"
-#include "hoshizora/core/allocator/sharedmemoryallocator.h"
 #include "hoshizora/core/io/io.h"
 
 using namespace std;
@@ -18,7 +17,7 @@ namespace hoshizora {
         debug::print("loaded");
         auto graph = _Graph::FromEdgeList(edge_list.data(), edge_list.size());
         debug::print("converted");
-        BulkSyncDispatcher<PageRankKernel<_Graph>, SharedMemoryAllocator> dispatcher(graph);
+        BulkSyncDispatcher<PageRankKernel<_Graph>> dispatcher(graph);
         cout << dispatcher.run() << endl;
         debug::print("done");
     }
