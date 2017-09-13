@@ -6,6 +6,8 @@
 #include <vector>
 #include <cassert>
 #include <thread>
+#include <string>
+#include <mutex>
 #include "hoshizora/core/util/includes.h"
 
 namespace hoshizora {
@@ -22,8 +24,11 @@ namespace hoshizora {
     using skip_t = std::nullptr_t[0];
 
     namespace debug {
+        std::mutex stdout_guard;
+
         template<class T>
         static inline void print(T const &el) {
+            std::lock_guard<std::mutex> lg(stdout_guard);
             std::cout << el << std::endl;
         }
     }
