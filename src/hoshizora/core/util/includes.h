@@ -8,8 +8,11 @@
 #include <thread>
 #include <string>
 #include <iostream>
-#include <sched.h> // linux
-#include <cpuid.h> // macos
+#ifdef __linux__
+#include <sched.h>
+#elif __APPLE__
+#include <cpuid.h>
+#endif
 #include "hoshizora/core/util/includes.h"
 #include "external/spdlog/spdlog.h"
 
@@ -129,7 +132,7 @@ namespace hoshizora {
             }
 
             // significantly slower than normal index access on a single array
-            [[deprecated("Recommended to call with hint")]]
+            //[[deprecated("Recommended to call with hint")]]
             T &operator()(u32 index) {
                 // TODO: sequential search may be faster
                 const auto n = std::distance(begin(range) + 1,
@@ -164,9 +167,9 @@ namespace hoshizora {
     namespace sched {
         static inline i32 get_cpu_id() {
 #ifdef __linux__
-            return get_sched();
+            return sched_getcpu();
 #elif __APPLE__
-            std::array<u32, 4> CPUInfo = {0, 0, 0, 0};
+            std::array<u32, 4> CPUInfo = {{0, 0, 0, 0}};
             __cpuid_count(1, 0, CPUInfo[0], CPUInfo[1], CPUInfo[2], CPUInfo[3]);
             i32 cpu_id = -1;
             if ((CPUInfo[3] & (1 << 9)) == 0) {

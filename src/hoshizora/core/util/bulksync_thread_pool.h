@@ -8,8 +8,11 @@
 #include <functional>
 #include <atomic>
 #include <cassert>
-#include <sched.h> // linux
-#include <mach/thread_act.h> // macos
+#ifdef __linux__
+#include <sched.h>
+#elif __APPLE__
+#include <mach/thread_act.h>
+#endif
 #include "hoshizora/core/util/includes.h"
 #include "hoshizora/core/util/spin_barrier.h"
 
@@ -65,7 +68,7 @@ namespace hoshizora {
                     const auto policy = thread_affinity_policy_data_t{0}; // FIXME
                     thread_policy_set(pthread_mach_thread_np(pool[thread_id].native_handle()),
                                       THREAD_AFFINITY_POLICY,
-                                      (thread_policy_t) &policy,
+                                      (thread_policy_t) & policy,
                                       THREAD_AFFINITY_POLICY_COUNT);
 #else
                     debug::logger->info("No thread affinity")
