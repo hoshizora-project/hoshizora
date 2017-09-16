@@ -19,7 +19,7 @@ namespace hoshizora {
         auto graph = _Graph::FromEdgeList(edge_list.data(), edge_list.size());
         debug::logger->info("converted");
         BulkSyncDispatcher<PageRankKernel<_Graph>> dispatcher(graph);
-        cout << dispatcher.run() << endl;
+        debug::logger->info(dispatcher.run());
         debug::logger->info("done");
     }
 }
