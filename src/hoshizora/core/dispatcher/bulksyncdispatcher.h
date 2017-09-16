@@ -47,7 +47,7 @@ namespace hoshizora {
         }
 
         std::string run() {
-            constexpr auto num_iters = 2;
+            constexpr auto num_iters = 2000;
             for (auto iter = 0u; iter < num_iters; ++iter) {
                 auto kernel = this->kernel; // FIXME
                 auto prev_graph = this->prev_graph;

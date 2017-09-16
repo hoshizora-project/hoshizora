@@ -8,6 +8,8 @@
 #include <thread>
 #include <string>
 #include <iostream>
+#include <sched.h> // linux
+#include <cpuid.h> // macos
 #include "hoshizora/core/util/includes.h"
 #include "external/spdlog/spdlog.h"
 
@@ -157,6 +159,27 @@ namespace hoshizora {
             }
              */
         };
+    }
+
+    namespace sched {
+        static inline i32 get_cpu_id() {
+#ifdef __linux__
+            return get_sched();
+#elif __APPLE__
+            std::array<u32, 4> CPUInfo = {0, 0, 0, 0};
+            __cpuid_count(1, 0, CPUInfo[0], CPUInfo[1], CPUInfo[2], CPUInfo[3]);
+            i32 cpu_id = -1;
+            if ((CPUInfo[3] & (1 << 9)) == 0) {
+                /* no APIC on chip */
+            } else {
+                cpu_id = static_cast<u32>(CPUInfo[1] >> 24);
+            }
+            if (cpu_id < 0) cpu_id = 0;
+            return cpu_id;
+#else
+            return -1;
+#endif
+        }
     }
 
     namespace parallel {

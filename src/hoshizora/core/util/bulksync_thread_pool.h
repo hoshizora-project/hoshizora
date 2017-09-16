@@ -8,7 +8,8 @@
 #include <functional>
 #include <atomic>
 #include <cassert>
-#include <sched.h>
+#include <sched.h> // linux
+#include <mach/thread_act.h> // macos
 #include "hoshizora/core/util/includes.h"
 #include "hoshizora/core/util/spin_barrier.h"
 
@@ -41,7 +42,8 @@ namespace hoshizora {
                         task();
 
                         mtx.lock();
-                        SPDLOG_DEBUG(debug::logger, "done[{}]", thread_id);
+                        SPDLOG_DEBUG(debug::logger, "done[{}] on CPU{}",
+                                     thread_id, sched::get_cpu_id());
                         task_queues[thread_id].pop(); // TODO: concurrent_queue
                         mtx.unlock();
                         barrier.wait(thread_id);
@@ -49,18 +51,28 @@ namespace hoshizora {
                 }));
             }
 
-#ifdef __linux__
+            // set own thread affinity
             auto tasks = new std::vector<std::function<void()>>();
             for (u32 thread_id = 0; thread_id < num_threads; ++thread_id) {
                 tasks->emplace_back([&, thread_id]() {
+#ifdef __linux__
                     cpu_set_t cpuset;
                     CPU_ZERO(&cpuset);
                     CPU_SET(0, &cpuset); // FIXME
                     sched_setaffinity(syscall(SYS_gettid), sizeof(cpu_set_t), &cpuset);
+#elif __APPLE__
+                    // FIXME: not work properly
+                    const auto policy = thread_affinity_policy_data_t{0}; // FIXME
+                    thread_policy_set(pthread_mach_thread_np(pool[thread_id].native_handle()),
+                                      THREAD_AFFINITY_POLICY,
+                                      (thread_policy_t) &policy,
+                                      THREAD_AFFINITY_POLICY_COUNT);
+#else
+                    debug::logger->info("No thread affinity")
+#endif
                 });
             }
             push_tasks(tasks);
-#endif
         }
 
         void push_tasks(std::vector<std::function<void()>> *tasks) {
