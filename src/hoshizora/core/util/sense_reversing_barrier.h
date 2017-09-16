@@ -4,7 +4,7 @@
 #include "hoshizora/core/util/includes.h"
 
 namespace hoshizora {
-    class SpinBarrier {
+    class SenseReversingBarrier {
     private:
         const u32 num_threads;
         std::atomic<u32> num_waits;
@@ -14,13 +14,13 @@ namespace hoshizora {
         inline u32 tid2idx(u32 i) { return i * 64 / sizeof(u32); }
 
     public:
-        SpinBarrier() = delete;
+        SenseReversingBarrier() = delete;
 
-        SpinBarrier(const SpinBarrier &) = delete;
+        SenseReversingBarrier(const SenseReversingBarrier &) = delete;
 
-        SpinBarrier &operator=(const SpinBarrier &) = delete;
+        SenseReversingBarrier &operator=(const SenseReversingBarrier &) = delete;
 
-        explicit SpinBarrier(u32 num_threads) :
+        explicit SenseReversingBarrier(u32 num_threads) :
                 num_threads(num_threads),
                 num_waits(num_threads),
                 sense(false),

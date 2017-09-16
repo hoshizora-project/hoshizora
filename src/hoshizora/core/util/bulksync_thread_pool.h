@@ -14,7 +14,7 @@
 #include <mach/thread_act.h>
 #endif
 #include "hoshizora/core/util/includes.h"
-#include "hoshizora/core/util/spin_barrier.h"
+#include "hoshizora/core/util/sense_reversing_barrier.h"
 
 namespace hoshizora {
     struct BulkSyncThreadPool {
@@ -24,7 +24,7 @@ namespace hoshizora {
         bool quit_flag = false;
         u32 num_threads;
         std::mutex mtx; // TODO
-        SpinBarrier barrier;
+        SenseReversingBarrier barrier;
 
         explicit BulkSyncThreadPool(u32 num_threads)
                 : num_threads(num_threads), barrier(num_threads) {
@@ -61,14 +61,14 @@ namespace hoshizora {
 #ifdef __linux__
                     cpu_set_t cpuset;
                     CPU_ZERO(&cpuset);
-                    CPU_SET(0, &cpuset); // FIXME
+                    CPU_SET(threae_id, &cpuset); // FIXME
                     sched_setaffinity(syscall(SYS_gettid), sizeof(cpu_set_t), &cpuset);
 #elif __APPLE__
                     // FIXME: not work properly
-                    const auto policy = thread_affinity_policy_data_t{0}; // FIXME
+                    const auto policy = thread_affinity_policy_data_t{thread_id}; // FIXME
                     thread_policy_set(pthread_mach_thread_np(pool[thread_id].native_handle()),
                                       THREAD_AFFINITY_POLICY,
-                                      (thread_policy_t) & policy,
+                                      (thread_policy_t) &policy,
                                       THREAD_AFFINITY_POLICY_COUNT);
 #else
                     debug::logger->info("No thread affinity")

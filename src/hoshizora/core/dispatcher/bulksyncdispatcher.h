@@ -63,7 +63,7 @@ namespace hoshizora {
                         //}
                     }, prev_graph->out_boundaries);
                 } else {
-                    Graph::Next(*prev_graph, *curr_graph);
+                    Graph::Next(*prev_graph, *curr_graph); // FIXME: must be executed in task queue
                 }
 
                 // scatter and gather
