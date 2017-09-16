@@ -53,6 +53,7 @@ namespace hoshizora {
         EProp *e_props; // [num_edges]
         heap::DiscreteArray <VData> v_data; // [num_vertices]
         heap::DiscreteArray <EData> e_data; // [num_edges]
+
         heap::DiscreteArray<bool> active_flags; // [num_vertices]
 
         bool out_degrees_is_initialized = false;
@@ -70,7 +71,13 @@ namespace hoshizora {
         Graph() : out_degrees(heap::DiscreteArray<ID>()),
                   out_neighbors(heap::DiscreteArray<ID *>()),
                   in_degrees(heap::DiscreteArray<ID>()),
-                  in_neighbors(heap::DiscreteArray<ID *>()) {}
+                  in_neighbors(heap::DiscreteArray<ID *>()),
+                  v_data(heap::DiscreteArray<VData>()),
+                  e_data(heap::DiscreteArray<EData>()) {}
+
+        virtual ~Graph(){
+            //debug::print("dest graph");
+        }
 
         void set_out_boundaries() {
             assert(!out_offsets_is_initialized);
@@ -307,12 +314,13 @@ namespace hoshizora {
             forward_indices_is_initialized = true;
         }
 
-        void set_v_data() {
+        void set_v_data(bool allow_overwrite = false) {
             assert(out_boundaries_is_initialized);
             // assert(in_boundaries_is_initialized);
 
-
-            v_data = std::move(heap::DiscreteArray<VData>());
+            if (allow_overwrite) {
+                v_data = *(new heap::DiscreteArray<VData>());
+            }
 
             // TODO: consider both out and in boundaries (?)
             // If readonly, it should be allowed that duplicate vertex data
@@ -325,13 +333,15 @@ namespace hoshizora {
                                      });
         }
 
-        void set_e_data() {
+        void set_e_data(bool allow_overwirte = false) {
             assert(out_boundaries_is_initialized);
             assert(out_offsets_is_initialized);
             // assert(in_boundaries_is_initialized);
             // assert(in_offsets_is_initialized);
 
-            e_data = heap::DiscreteArray<EData>();
+            if (allow_overwirte) {
+                e_data = *(new heap::DiscreteArray<EData>());
+            }
 
             // TODO: consider both out and in boundaries (?)
             // If readonly, it should be allowed that duplicate edge data

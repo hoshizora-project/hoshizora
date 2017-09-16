@@ -8,6 +8,7 @@
 #include <thread>
 #include <string>
 #include <mutex>
+#include <iostream>
 #include "hoshizora/core/util/includes.h"
 
 namespace hoshizora {
@@ -62,6 +63,10 @@ namespace hoshizora {
 
             DiscreteArray(std::vector<T *> &data, std::vector<u32> &range)
                     : data(data), range(range) {}
+
+            ~DiscreteArray(){
+                //debug::print("freed disc array"+std::to_string(range.size()));
+            }
 
             // Though like copy constructor, this makes only references numa-local
             DiscreteArray<T> redundant() {

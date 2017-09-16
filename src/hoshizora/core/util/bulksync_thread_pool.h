@@ -59,9 +59,9 @@ namespace hoshizora {
 
     struct BulkSyncThreadPool {
         std::vector<std::thread> pool;
-        std::vector<std::queue<std::function<void(u32)>>> tasks;
-        bool terminate_flag = false;
-        bool terminate_if_empty_flag = false;
+        std::vector<std::queue<std::function<void()>>> tasks;
+        bool force_quit_flag = false;
+        bool quit_flag = false;
         u32 num_threads;
         std::mutex mtx; // TODO
         spin_barrier sb;
@@ -69,7 +69,7 @@ namespace hoshizora {
         explicit BulkSyncThreadPool(u32 num_threads)
                 : num_threads(num_threads), sb(num_threads) {
             for (u32 thread_id = 0; thread_id < num_threads; ++thread_id) {
-                std::queue<std::function<void(u32)>> queue;
+                std::queue<std::function<void()>> queue;
                 tasks.emplace_back(queue);
             }
 
@@ -78,12 +78,12 @@ namespace hoshizora {
                     // TODO: thread affinity
                     debug::print("created");
 
-                    while (!terminate_flag
-                           && !(terminate_if_empty_flag && tasks[thread_id].empty())) {
+                    while (!force_quit_flag
+                           && !(quit_flag && tasks[thread_id].empty())) {
                         if (tasks[thread_id].empty()) continue;
 
                         const auto &task = tasks[thread_id].front();
-                        task(thread_id);
+                        task();
 
                         mtx.lock();
                         debug::print("done(" + std::to_string(thread_id) + ")");
@@ -95,36 +95,25 @@ namespace hoshizora {
             }
         }
 
-        void push_bulk(std::vector<std::function<void(u32)>> &bulk) {
-            assert(num_threads == bulk.size());
-
-            for (u32 n = 0; n < num_threads; ++n) {
-                mtx.lock();
-                tasks[n].push(std::move(bulk[n]));
-                mtx.unlock();
-            }
-        }
-
-
-        void push_bulk(std::vector<std::function<void(u32)>> *bulk) {
+        void push_bulk(std::vector<std::function<void()>> *bulk) {
             assert(num_threads == bulk->size());
 
             for (u32 n = 0; n < num_threads; ++n) {
                 mtx.lock();
-                tasks[n].push(/*std::move(*/(*bulk)[n]/*)*/);
+                tasks[n].push(std::move((*bulk)[n]));
                 mtx.unlock();
             }
         }
 
-        void terminate() {
-            terminate_flag = true;
+        void force_quit() {
+            force_quit_flag = true;
             for (auto &thread: pool) {
                 thread.join();
             }
         }
 
-        void terminate_if_empty() {
-            terminate_if_empty_flag = true;
+        void quit() {
+            quit_flag = true;
             for (auto &thread: pool) {
                 thread.join();
             }

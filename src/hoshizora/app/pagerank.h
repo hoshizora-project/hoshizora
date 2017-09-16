@@ -2,6 +2,7 @@
 #define HOSHIZORA_PAGERANK_H
 
 
+#include <string>
 #include "hoshizora/core/util/includes.h"
 #include "hoshizora/core/api/kernel.h"
 
@@ -15,36 +16,36 @@ namespace hoshizora {
 
         constexpr static auto JUMP_PROB = 0.15;
 
-        VData init(const ID src, const Graph &graph) {
+        VData init(const ID src, const Graph &graph) const {
 //            return 1.0 / graph.num_vertices;
             return 1.0;
         }
 
         EData scatter(const ID src, const ID dst,
-                      const VData v_val, const Graph &graph) {
+                      const VData v_val, const Graph &graph) const {
             return v_val / graph.out_degrees(src, 0, 0); // TODO: numa_id
         }
 
         EData gather(const ID src, const ID dst, const VData prev_val,
-                     const VData curr_val, const Graph &graph) {
+                     const VData curr_val, const Graph &graph) const {
             return curr_val;
         }
 
-        VData zero(const ID dst, const Graph &graph) {
+        VData zero(const ID dst, const Graph &graph) const {
             return 0.0;
         }
 
         VData sum(const ID src, const ID dst,
-                  const VData v_val, const EData e_val, const Graph &graph) {
+                  const VData v_val, const EData e_val, const Graph &graph) const {
             return v_val + e_val;
         }
 
         VData apply(const ID dst, const VData prev_val,
-                    const VData curr_val, const Graph &graph) {
+                    const VData curr_val, const Graph &graph) const {
             return (1 - JUMP_PROB) * curr_val + JUMP_PROB / graph.num_vertices;
         }
 
-        string result(const Graph &graph) {
+        std::string result(const Graph &graph) const {
 //            debug::print(graph.num_vertices);
 
 /*
@@ -56,7 +57,7 @@ namespace hoshizora {
             res = res + "]}";
 
             */
-            string res = "";
+            auto res = "";
 
             return res;
         }
