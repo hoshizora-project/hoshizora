@@ -8,99 +8,67 @@
 #include <functional>
 #include <atomic>
 #include <cassert>
+#include <sched.h>
 #include "hoshizora/core/util/includes.h"
+#include "hoshizora/core/util/spin_barrier.h"
 
 namespace hoshizora {
-    class spin_barrier {
-    private:
-        const u32 num_threads;
-        std::atomic<u32> num_waits;
-        std::atomic<bool> sense;
-        std::vector<u32> local_sense;
-
-        inline u32 tid2idx(u32 i) { return i * 64 / sizeof(u32); }
-
-    public:
-        spin_barrier() = delete;
-
-        spin_barrier(const spin_barrier &) = delete;
-
-        spin_barrier &operator=(const spin_barrier &) = delete;
-
-        explicit spin_barrier(u32 num_threads) :
-                num_threads(num_threads),
-                num_waits(num_threads),
-                sense(false),
-                local_sense(tid2idx(num_threads)) {
-            for (u32 thread_id = 0; thread_id < num_threads; ++thread_id) {
-                local_sense[tid2idx(thread_id)] = static_cast<u32>(true);
-            }
-        }
-
-        void wait(u32 i) {
-            int _sense = local_sense[tid2idx(i)];
-
-            SPDLOG_DEBUG(debug::logger, "wait[{}]", i);
-            if (num_waits.fetch_sub(1) == 1) {
-                SPDLOG_DEBUG(debug::logger, "wakeup[{}]", i);
-
-                // reset
-                num_waits.store(num_threads);
-                sense.store(!sense, std::memory_order_release);
-            } else {
-                while (_sense != sense);
-                SPDLOG_DEBUG(debug::logger, "wakedup[{}]", i);
-            }
-
-            // reset
-            local_sense[tid2idx(i)] = static_cast<u32>(!_sense);
-        }
-    };
-
     struct BulkSyncThreadPool {
         std::vector<std::thread> pool;
-        std::vector<std::queue<std::function<void()>>> tasks;
+        std::vector<std::queue<std::function<void()>>> task_queues;
         bool force_quit_flag = false;
         bool quit_flag = false;
         u32 num_threads;
         std::mutex mtx; // TODO
-        spin_barrier sb;
+        SpinBarrier barrier;
 
         explicit BulkSyncThreadPool(u32 num_threads)
-                : num_threads(num_threads), sb(num_threads) {
+                : num_threads(num_threads), barrier(num_threads) {
             for (u32 thread_id = 0; thread_id < num_threads; ++thread_id) {
                 std::queue<std::function<void()>> queue;
-                tasks.emplace_back(queue);
+                task_queues.emplace_back(queue);
             }
 
             for (u32 thread_id = 0; thread_id < num_threads; ++thread_id) {
                 pool.emplace_back(std::thread([&, thread_id]() {
-                    // TODO: thread affinity
                     SPDLOG_DEBUG(debug::logger, "created[{}]", thread_id);
 
                     while (!force_quit_flag
-                           && !(quit_flag && tasks[thread_id].empty())) {
-                        if (tasks[thread_id].empty()) continue;
+                           && !(quit_flag && task_queues[thread_id].empty())) {
+                        if (task_queues[thread_id].empty()) continue;
 
-                        const auto &task = tasks[thread_id].front();
+                        const auto &task = task_queues[thread_id].front();
                         task();
 
                         mtx.lock();
                         SPDLOG_DEBUG(debug::logger, "done[{}]", thread_id);
-                        tasks[thread_id].pop(); // TODO: concurrent_queue
+                        task_queues[thread_id].pop(); // TODO: concurrent_queue
                         mtx.unlock();
-                        sb.wait(thread_id);
+                        barrier.wait(thread_id);
                     }
                 }));
             }
+
+#ifdef __linux__
+            auto tasks = new std::vector<std::function<void()>>();
+            for (u32 thread_id = 0; thread_id < num_threads; ++thread_id) {
+                tasks->emplace_back([&, thread_id]() {
+                    cpu_set_t cpuset;
+                    CPU_ZERO(&cpuset);
+                    CPU_SET(0, &cpuset); // FIXME
+                    sched_setaffinity(syscall(SYS_gettid), sizeof(cpu_set_t), &cpuset);
+                });
+            }
+            push_tasks(tasks);
+#endif
         }
 
-        void push_bulk(std::vector<std::function<void()>> *bulk) {
-            assert(num_threads == bulk->size());
+        void push_tasks(std::vector<std::function<void()>> *tasks) {
+            assert(num_threads == tasks->size());
 
             for (u32 n = 0; n < num_threads; ++n) {
                 mtx.lock();
-                tasks[n].push(std::move((*bulk)[n]));
+                task_queues[n].push(std::move((*tasks)[n]));
                 mtx.unlock();
             }
         }
@@ -120,6 +88,5 @@ namespace hoshizora {
         }
     };
 }
-
 
 #endif //HOSHIZORA_THREAD_POOL_H

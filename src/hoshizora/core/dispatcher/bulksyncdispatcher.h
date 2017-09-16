@@ -34,16 +34,16 @@ namespace hoshizora {
 
         template<class Func>
         inline void push_tasks(Func f, ID *boundaries) {
-            auto bulk = new std::vector<std::function<void()>>();
+            auto tasks = new std::vector<std::function<void()>>();
             parallel::each_thread(boundaries,
                                   [&](u32 numa_id, u32 thread_id, u32 lower, u32 upper) {
-                                      bulk->emplace_back([=, &f]() {
+                                      tasks->emplace_back([=, &f]() {
                                           for (ID dst = lower; dst < upper; ++dst) {
                                               f(dst, numa_id);
                                           }
                                       });
                                   });
-            thread_pool.push_bulk(bulk);
+            thread_pool.push_tasks(tasks);
         }
 
         std::string run() {
