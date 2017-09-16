@@ -2,9 +2,9 @@
 #define HOSHIZORA_BULKSYNCDISPATCHER_H
 
 #include <string>
-#include "hoshizora/core/dispatcher/dispatcher.h"
 #include <thread>
-#include <hoshizora/core/util/bulksync_thread_pool.h>
+#include "hoshizora/core/dispatcher/dispatcher.h"
+#include "hoshizora/core/util/bulksync_thread_pool.h"
 
 namespace hoshizora {
     template<class Kernel>
@@ -62,7 +62,7 @@ namespace hoshizora {
 
         std::string run() {
 
-            constexpr auto num_iters = 200;
+            constexpr auto num_iters = 2;
 
             for (auto iter = 0u; iter < num_iters; ++iter) {
                 auto kernel = this->kernel;

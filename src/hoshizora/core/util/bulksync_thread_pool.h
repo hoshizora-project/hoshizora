@@ -7,11 +7,19 @@
 #include <mutex>
 #include <functional>
 #include <atomic>
-#include <assert.h>
-#include <hoshizora/core/util/includes.h>
+#include <cassert>
+#include "hoshizora/core/util/includes.h"
 
 namespace hoshizora {
     class spin_barrier {
+    private:
+        const u32 num_threads;
+        std::atomic<u32> num_waits;
+        std::atomic<bool> sense;
+        std::vector<u32> local_sense;
+
+        inline u32 tid2idx(u32 i) { return i * 64 / sizeof(u32); }
+
     public:
         spin_barrier() = delete;
 
@@ -31,30 +39,22 @@ namespace hoshizora {
 
         void wait(u32 i) {
             int _sense = local_sense[tid2idx(i)];
-            debug::print("wait(" + std::to_string(i) + ")");
 
+            SPDLOG_DEBUG(debug::logger, "wait[{}]", i);
             if (num_waits.fetch_sub(1) == 1) {
-                debug::print("wakeup(" + std::to_string(i) + ")");
+                SPDLOG_DEBUG(debug::logger, "wakeup[{}]", i);
 
                 // reset
                 num_waits.store(num_threads);
                 sense.store(!sense, std::memory_order_release);
             } else {
                 while (_sense != sense);
-                debug::print("wakedup(" + std::to_string(i) + ")");
+                SPDLOG_DEBUG(debug::logger, "wakedup[{}]", i);
             }
 
             // reset
             local_sense[tid2idx(i)] = static_cast<u32>(!_sense);
         }
-
-    private:
-        const u32 num_threads;
-        std::atomic<u32> num_waits;
-        std::atomic<bool> sense;
-        std::vector<u32> local_sense;
-
-        inline u32 tid2idx(u32 i) { return i * 64 / sizeof(u32); }
     };
 
     struct BulkSyncThreadPool {
@@ -76,7 +76,7 @@ namespace hoshizora {
             for (u32 thread_id = 0; thread_id < num_threads; ++thread_id) {
                 pool.emplace_back(std::thread([&, thread_id]() {
                     // TODO: thread affinity
-                    debug::print("created");
+                    SPDLOG_DEBUG(debug::logger, "created[{}]", thread_id);
 
                     while (!force_quit_flag
                            && !(quit_flag && tasks[thread_id].empty())) {
@@ -86,7 +86,7 @@ namespace hoshizora {
                         task();
 
                         mtx.lock();
-                        debug::print("done(" + std::to_string(thread_id) + ")");
+                        SPDLOG_DEBUG(debug::logger, "done[{}]", thread_id);
                         tasks[thread_id].pop(); // TODO: concurrent_queue
                         mtx.unlock();
                         sb.wait(thread_id);
@@ -105,15 +105,15 @@ namespace hoshizora {
             }
         }
 
-        void force_quit() {
-            force_quit_flag = true;
+        void quit() {
+            quit_flag = true;
             for (auto &thread: pool) {
                 thread.join();
             }
         }
 
-        void quit() {
-            quit_flag = true;
+        void force_quit() {
+            force_quit_flag = true;
             for (auto &thread: pool) {
                 thread.join();
             }

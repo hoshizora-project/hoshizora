@@ -2,14 +2,14 @@
 #define HOSHIZORA_INCLUDES_H
 
 #include <cstdint>
-#include <stdlib.h>
+#include <cstdlib>
 #include <vector>
 #include <cassert>
 #include <thread>
 #include <string>
-#include <mutex>
 #include <iostream>
 #include "hoshizora/core/util/includes.h"
+#include "external/spdlog/spdlog.h"
 
 namespace hoshizora {
     using u8 = uint8_t;
@@ -25,12 +25,10 @@ namespace hoshizora {
     using skip_t = std::nullptr_t[0];
 
     namespace debug {
-        std::mutex stdout_guard;
+        const auto logger = spdlog::stderr_color_mt("logger");
 
-        template<class T>
-        static inline void print(T const &el) {
-            std::lock_guard<std::mutex> lg(stdout_guard);
-            std::cout << el << std::endl;
+        static inline void init_logger() {
+            logger->set_level(spdlog::level::debug);
         }
     }
 
@@ -57,14 +55,14 @@ namespace hoshizora {
             std::vector<T *> data;
             std::vector<u32> range;
 
-            DiscreteArray(){
+            DiscreteArray() {
                 range.emplace_back(0);
             }
 
             DiscreteArray(std::vector<T *> &data, std::vector<u32> &range)
                     : data(data), range(range) {}
 
-            ~DiscreteArray(){
+            ~DiscreteArray() {
                 //debug::print("freed disc array"+std::to_string(range.size()));
             }
 
@@ -112,7 +110,6 @@ namespace hoshizora {
             }
 
             void add(std::vector<T> &chunk) {
-                debug::print("called &"); // TODO
                 data.emplace_back(chunk.data());
                 range.emplace_back(range.back() + chunk.size());
             }
@@ -170,7 +167,7 @@ namespace hoshizora {
 
     namespace mock {
         template<class T>
-        [[deprecated("Mock")]]
+        //[[deprecated("Mock")]]
         static inline T *numa_alloc_onnode(size_t size, int node) {
             // TODO: constexpr (pended by CLion)
             if (parallel::support_numa) {
@@ -181,7 +178,7 @@ namespace hoshizora {
             }
         }
 
-        [[deprecated("Mock")]]
+        //[[deprecated("Mock")]]
         static inline u32 thread_to_numa(u32 thread_id) {
             return thread_id < 2 ? 0 : 1;
         }
