@@ -45,7 +45,7 @@ namespace hoshizora {
 
     namespace mem {
         template<class T>
-        static inline T *alloc(u64 length) {
+        static inline T *malloc(u64 length) {
 #ifdef SUPPORT_NUMA
             return static_cast<T *>(numa_alloc_local(sizeof(T) * length));
 #else
@@ -54,7 +54,7 @@ namespace hoshizora {
         }
 
         template<class T>
-        static inline T *alloc(u64 length, u32 node) {
+        static inline T *malloc(u64 length, u32 node) {
 #ifdef SUPPORT_NUMA
             return static_cast<T *>(numa_alloc_onnode(sizeof(T) * length, node));
 #else
@@ -64,14 +64,14 @@ namespace hoshizora {
 
         template<class T>
         static inline T *calloc(u64 length) {
-            auto arr = alloc<T>(length);
+            auto arr = malloc<T>(length);
             std::memset(arr, 0, sizeof(T) * length);
             return arr;
         }
 
         template<class T>
         static inline T *calloc(u64 length, u32 node) {
-            auto arr = alloc<T>(length, node);
+            auto arr = malloc<T>(length, node);
             std::memset(arr, 0, sizeof(T) * length);
             return arr;
         }

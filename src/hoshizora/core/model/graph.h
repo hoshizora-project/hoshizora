@@ -126,7 +126,7 @@ namespace hoshizora {
                                          const auto size = numa_id != num_numa_nodes - 1
                                                            ? upper - lower
                                                            : upper - lower + 1; // include cap
-                                         const auto offsets = mem::alloc<u32>(size);
+                                         const auto offsets = mem::malloc<u32>(size);
                                          std::memcpy(offsets, tmp_out_offsets + lower, size * sizeof(u32));
                                          out_offsets.add(offsets, size);
                                      });
@@ -148,7 +148,7 @@ namespace hoshizora {
                                          const auto size = numa_id != num_numa_nodes - 1
                                                            ? upper - lower
                                                            : upper - lower + 1; // include cap
-                                         const auto offsets = mem::alloc<u32>(size);
+                                         const auto offsets = mem::malloc<u32>(size);
                                          std::memcpy(offsets, tmp_in_offsets + lower, size * sizeof(u32));
                                          in_offsets.add(offsets, size);
                                      });
@@ -164,7 +164,7 @@ namespace hoshizora {
 
             loop::each_numa_node(out_boundaries, [&](u32 numa_id, u32 lower, u32 upper) {
                 const auto size = upper - lower;
-                const auto degrees = mem::alloc<ID>(size);
+                const auto degrees = mem::malloc<ID>(size);
                 for (u32 i = lower; i < upper; ++i) {
                     degrees[i - lower] = out_offsets(i + 1, numa_id) - out_offsets(i, numa_id);
                 }
@@ -185,7 +185,7 @@ namespace hoshizora {
 
             loop::each_numa_node(in_boundaries, [&](u32 numa_id, u32 lower, u32 upper) {
                 const auto size = upper - lower;
-                const auto degrees = mem::alloc<ID>(size);
+                const auto degrees = mem::malloc<ID>(size);
                 for (u32 i = lower; i < upper; ++i) {
                     degrees[i - lower] = in_offsets(i + 1, numa_id) - in_offsets(i, numa_id);
                 }
@@ -215,7 +215,7 @@ namespace hoshizora {
                                                           ? out_offsets(upper, numa_id + 1)
                                                           : out_offsets(upper, numa_id);
                                          const auto size = end - start;
-                                         const auto indices = mem::alloc<u32>(size);
+                                         const auto indices = mem::malloc<u32>(size);
                                          std::memcpy(indices, tmp_out_indices + start, size * sizeof(u32));
                                          out_indices.add(indices, size);
                                      });
@@ -240,7 +240,7 @@ namespace hoshizora {
                                                           ? in_offsets(upper, numa_id + 1)
                                                           : in_offsets(upper, numa_id);
                                          const auto size = end - start;
-                                         const auto indices = mem::alloc<u32>(size);
+                                         const auto indices = mem::malloc<u32>(size);
                                          std::memcpy(indices,
                                                      tmp_in_indices + start,
                                                      size * sizeof(u32));
@@ -258,7 +258,7 @@ namespace hoshizora {
 
             loop::each_numa_node(out_boundaries,
                                  [&](u32 numa_id, u32 lower, u32 upper) {
-                                     auto out_neighbor = new std::vector<ID *>();
+                                     auto out_neighbor = new numa_vector<ID *>(numa_id);
                                      out_neighbor->reserve(upper - lower);
                                      for (ID i = lower; i < upper; ++i) {
                                          out_neighbor->emplace_back(
@@ -276,7 +276,7 @@ namespace hoshizora {
 
             loop::each_numa_node(in_boundaries,
                                  [&](u32 numa_id, u32 lower, u32 upper) {
-                                     auto in_neighbor = new std::vector<ID *>();
+                                     auto in_neighbor = new numa_vector<ID *>(numa_id);
                                      in_neighbor->reserve(upper - lower);
                                      for (ID i = lower; i < upper; ++i) {
                                          in_neighbor->emplace_back(
@@ -295,7 +295,7 @@ namespace hoshizora {
             assert(out_neighbors_is_initialized);
             assert(in_offsets_is_initialized);
 
-            forward_indices = mem::alloc<ID>(num_edges); // TODO: should be numa-local
+            forward_indices = mem::malloc<ID>(num_edges); // TODO: should be numa-local
 
             auto counts = std::vector<ID>(num_vertices, 0);
             loop::each_thread(out_boundaries,
@@ -328,7 +328,7 @@ namespace hoshizora {
             loop::each_numa_node(out_boundaries,
                                  [&](u32 numa_id, u32 lower, u32 upper) {
                                      const auto size = upper - lower;
-                                     v_data.add(mem::alloc<VData>(size, numa_id), size);
+                                     v_data.add(mem::malloc<VData>(size, numa_id), size);
                                  });
         }
 
@@ -348,7 +348,7 @@ namespace hoshizora {
             loop::each_numa_node(out_boundaries, out_offsets,
                                  [&](u32 numa_id, u32 start, u32 end) {
                                      const auto size = end - start;
-                                     e_data.add(mem::alloc<EData>(size, numa_id), size);
+                                     e_data.add(mem::malloc<EData>(size, numa_id), size);
                                  });
         }
 
@@ -360,7 +360,7 @@ namespace hoshizora {
 
 //        template<class Executor>
 //        static _Graph FromEdgeListWithExecutor() {
-//            auto hoge = Executor::alloc();
+//            auto hoge = Executor::malloc();
 //            return Empty(); //
 //        }
 
@@ -385,8 +385,8 @@ namespace hoshizora {
             auto num_vertices = std::max(tmp_max, vec.back().first) + 1; // 0-based
             auto num_edges = len;
 
-            auto out_offsets = mem::alloc<ID>(num_vertices + 1); // all vertices + cap
-            auto out_indices = mem::alloc<ID>(num_edges); // all edges
+            auto out_offsets = mem::malloc<ID>(num_vertices + 1); // all vertices + cap
+            auto out_indices = mem::malloc<ID>(num_edges); // all edges
 
             out_offsets[0] = 0u;
             auto prev_src = vec[0].first;
@@ -417,8 +417,8 @@ namespace hoshizora {
                 return l.first < r.first;
             });
 
-            auto in_offsets = mem::alloc<ID>(num_vertices);
-            auto in_indices = mem::alloc<ID>(num_edges);
+            auto in_offsets = mem::malloc<ID>(num_vertices);
+            auto in_indices = mem::malloc<ID>(num_edges);
 
             in_offsets[0] = 0;
             prev_src = vec[0].first;

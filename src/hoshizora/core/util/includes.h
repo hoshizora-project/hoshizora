@@ -45,7 +45,7 @@ namespace hoshizora {
                     : data(data), range(range) {}
 
             ~DiscreteArray() {
-                //debug::print("freed disc alloc"+std::to_string(range.size()));
+                //debug::print("freed disc malloc"+std::to_string(range.size()));
             }
 
             // Though like copy constructor, this makes only references numa-local
@@ -108,7 +108,7 @@ namespace hoshizora {
                 range[size - 1] = range[size - 2] + length;
             }
 
-            // significantly slower than normal index access on a single alloc
+            // significantly slower than normal index access on a single malloc
             //[[deprecated("Recommended to call with hint")]]
             T &operator()(u32 index) {
                 // TODO: sequential search may be faster
@@ -118,21 +118,21 @@ namespace hoshizora {
             }
 
             // TODO
-            // faster than normal index access on a single alloc
+            // faster than normal index access on a single malloc
             T operator()(u32 index, u32 n, u32 dummy) const {
                 // if constexpr (support_numa) data[n][index - range[n]] else data[0][index];
                 return data[n][index - range[n]];
             }
 
             // TODO
-            // faster than normal index access on a single alloc
+            // faster than normal index access on a single malloc
             T &operator()(u32 index, u32 n) {
                 // if constexpr (support_numa) data[n][index - range[n]] else data[0][index];
                 return data[n][index - range[n]];
             }
 
             // TODO
-            // significantly faster than normal index access on a single alloc
+            // significantly faster than normal index access on a single malloc
             /*
             T &operator()(u32 index, u32 n, u32 dummy) {
                 return data[n][local_index];

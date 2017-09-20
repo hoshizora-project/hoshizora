@@ -106,7 +106,7 @@ namespace hoshizora {
             //auto end = static_cast<u64>(file.tellg());
             //file.seekg(0, ios::beg);
             //auto n = end - file.tellg();
-            //auto bytes = mem::alloc<char>(n + 1);
+            //auto bytes = mem::malloc<char>(n + 1);
             //file.read(bytes, n);
             //file.close();
 
