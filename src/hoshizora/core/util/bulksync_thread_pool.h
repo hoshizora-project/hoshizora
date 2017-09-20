@@ -1,5 +1,5 @@
-#ifndef HOSHIZORA_THREAD_POOL_H
-#define HOSHIZORA_THREAD_POOL_H
+#ifndef HOSHIZORA_BULKSYNC_THREAD_POOL_H
+#define HOSHIZORA_BULKSYNC_THREAD_POOL_H
 
 #include <vector>
 #include <queue>
@@ -19,9 +19,9 @@
 namespace hoshizora {
     struct BulkSyncThreadPool {
         std::vector<std::thread> pool;
-        std::vector<std::queue<std::function<void()>>> task_queues;
-        bool force_quit_flag = false;
+        std::vector<std::queue<std::function<void()>> *> task_queues;
         bool quit_flag = false;
+        bool force_quit_flag = false;
         u32 num_threads;
         std::mutex mtx; // TODO
         SenseReversingBarrier barrier;
@@ -29,35 +29,9 @@ namespace hoshizora {
         explicit BulkSyncThreadPool(u32 num_threads)
                 : num_threads(num_threads), barrier(num_threads) {
             for (u32 thread_id = 0; thread_id < num_threads; ++thread_id) {
-                std::queue<std::function<void()>> queue;
-                task_queues.emplace_back(queue);
-            }
-
-            for (u32 thread_id = 0; thread_id < num_threads; ++thread_id) {
-                pool.emplace_back(std::thread([&, thread_id]() {
-                    SPDLOG_DEBUG(debug::logger, "created[{}]", thread_id);
-
-                    while (!force_quit_flag
-                           && !(quit_flag && task_queues[thread_id].empty())) {
-                        if (task_queues[thread_id].empty()) continue;
-
-                        const auto &task = task_queues[thread_id].front();
-                        task();
-
-                        mtx.lock();
-                        SPDLOG_DEBUG(debug::logger, "done[{}] on CPU{}",
-                                     thread_id, sched::get_cpu_id());
-                        task_queues[thread_id].pop(); // TODO: concurrent_queue
-                        mtx.unlock();
-                        barrier.wait(thread_id);
-                    }
-                }));
-            }
-
-            // set own thread affinity
-            auto tasks = new std::vector<std::function<void()>>();
-            for (u32 thread_id = 0; thread_id < num_threads; ++thread_id) {
-                tasks->emplace_back([&, thread_id]() {
+                auto queue = new std::queue<std::function<void()>>();
+                queue->push([&, thread_id]() {
+                    // set own thread affinity
 #ifdef __linux__
                     cpu_set_t cpuset;
                     CPU_ZERO(&cpuset);
@@ -65,7 +39,9 @@ namespace hoshizora {
                     sched_setaffinity(syscall(SYS_gettid), sizeof(cpu_set_t), &cpuset);
 #elif __APPLE__
                     // FIXME: not work properly
-                    const auto policy = thread_affinity_policy_data_t{thread_id}; // FIXME
+                    const auto policy = thread_affinity_policy_data_t{
+                            static_cast<i32>(thread_id)
+                    }; // FIXME
                     thread_policy_set(pthread_mach_thread_np(pool[thread_id].native_handle()),
                                       THREAD_AFFINITY_POLICY,
                                       (thread_policy_t) &policy,
@@ -74,8 +50,30 @@ namespace hoshizora {
                     debug::logger->info("No thread affinity")
 #endif
                 });
+                task_queues.emplace_back(queue);
             }
-            push_tasks(tasks);
+
+            for (u32 thread_id = 0; thread_id < num_threads; ++thread_id) {
+                pool.emplace_back(std::thread([&, thread_id]() {
+                    SPDLOG_DEBUG(debug::logger, "created[{}]", thread_id);
+
+                    while (!force_quit_flag
+                           && !(quit_flag && task_queues[thread_id]->empty())) {
+                        if (task_queues[thread_id]->empty()) continue;
+
+                        const auto &task = task_queues[thread_id]->front();
+                        task();
+
+                        mtx.lock();
+                        SPDLOG_DEBUG(debug::logger, "done[{}] on CPU{}",
+                                     thread_id, sched::get_cpu_id());
+                        // TODO: delete task
+                        task_queues[thread_id]->pop(); // TODO: concurrent_queue
+                        mtx.unlock();
+                        barrier.wait(thread_id);
+                    }
+                }));
+            }
         }
 
         void push_tasks(std::vector<std::function<void()>> *tasks) {
@@ -83,7 +81,7 @@ namespace hoshizora {
 
             for (u32 n = 0; n < num_threads; ++n) {
                 mtx.lock();
-                task_queues[n].push(std::move((*tasks)[n]));
+                task_queues[n]->push(std::move((*tasks)[n]));
                 mtx.unlock();
             }
         }
@@ -104,4 +102,4 @@ namespace hoshizora {
     };
 }
 
-#endif //HOSHIZORA_THREAD_POOL_H
+#endif //HOSHIZORA_BULKSYNC_THREAD_POOL_H

@@ -10,7 +10,7 @@ using namespace std;
 
 namespace hoshizora {
     void main() {
-        using _Graph = Graph<u32, skip_t, skip_t, f32, f32>;
+        using _Graph = Graph<u32, empty_t, empty_t, f32, f32>;
         debug::init_logger();
         debug::logger->info("started");
         auto edge_list = IO::fromFile0("../../data/email-Eu-core.hszr");
@@ -20,6 +20,7 @@ namespace hoshizora {
         debug::logger->info("converted");
         BulkSyncDispatcher<PageRankKernel<_Graph>> dispatcher(graph);
         debug::logger->info(dispatcher.run());
+        parallel::quit();
         debug::logger->info("done");
     }
 }

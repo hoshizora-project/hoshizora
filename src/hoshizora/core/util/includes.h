@@ -4,6 +4,9 @@
 #include <cstdint>
 #include <cstdlib>
 #include <vector>
+#include <queue>
+#include <mutex>
+#include <condition_variable>
 #include <cassert>
 #include <thread>
 #include <string>
@@ -11,48 +14,22 @@
 #ifdef __linux__
 #include <sched.h>
 #elif __APPLE__
-#include <cpuid.h>
+#include <mach/thread_act.h>
 #endif
-#include "hoshizora/core/util/includes.h"
-#include "external/spdlog/spdlog.h"
+#include "hoshizora/core/util/primitive_includes.h"
+#include "hoshizora/core/util/thread_pool.h"
+#include "hoshizora/core/util/numa_allocator.h"
 
 namespace hoshizora {
-    using u8 = uint8_t;
-    using u16 = uint16_t;
-    using u32 = uint32_t;
-    using u64 = uint64_t;
-    using i8 = int8_t;
-    using i16 = int16_t;
-    using i32 = int32_t;
-    using i64 = int64_t;
-    using f32 = float;
-    using f64 = double;
-    using skip_t = std::nullptr_t[0];
-
-    namespace debug {
-        const auto logger = spdlog::stderr_color_mt("hoshizora");
-
-        static inline void init_logger() {
-            logger->set_level(spdlog::level::debug);
-        }
-    }
+    template<class T>
+    using numa_vector =
+#ifdef SUPPORT_NUMA
+    std::vector<T, NumaAllocator<T>>;
+#else
+    std::vector<T>;
+#endif
 
     namespace heap {
-        template<class Type>
-        static inline Type *array(u64 length) {
-            return static_cast<Type *>(malloc(sizeof(Type) * length));
-        }
-
-        template<class Type>
-        static inline Type *array0(u64 length) {
-            auto arr = array<Type>(length);
-            // TODO
-            for (size_t i = 0; i < length; ++i) {
-                arr[i] = 0;
-            }
-            return arr;
-        }
-
         // TODO: SIMD-aware
         template<class T>
         struct DiscreteArray {
@@ -164,54 +141,13 @@ namespace hoshizora {
         };
     }
 
-    namespace sched {
-        static inline i32 get_cpu_id() {
-#ifdef __linux__
-            return sched_getcpu();
-#elif __APPLE__
-            std::array<u32, 4> CPUInfo = {{0, 0, 0, 0}};
-            __cpuid_count(1, 0, CPUInfo[0], CPUInfo[1], CPUInfo[2], CPUInfo[3]);
-            i32 cpu_id = -1;
-            if ((CPUInfo[3] & (1 << 9)) == 0) {
-                /* no APIC on chip */
-            } else {
-                cpu_id = static_cast<u32>(CPUInfo[1] >> 24);
-            }
-            if (cpu_id < 0) cpu_id = 0;
-            return cpu_id;
-#else
-            return -1;
-#endif
-        }
-    }
-
     namespace parallel {
-        static constexpr bool support_numa = true;
-        static const u32 num_threads = std::thread::hardware_concurrency();
-        static const u32 num_numa_nodes = 2;
-        static const std::vector<u32> numa_boundaries = {0, 2, 4};
-    }
+        static ThreadPool pool;
 
-    namespace mock {
-        template<class T>
-        //[[deprecated("Mock")]]
-        static inline T *numa_alloc_onnode(size_t size, int node) {
-            // TODO: constexpr (pended by CLion)
-            if (parallel::support_numa) {
-                // TODO
-                return reinterpret_cast<T *>(malloc(size));
-            } else {
-                return reinterpret_cast<T *>(malloc(size));
-            }
+        static void quit() {
+            pool.quit();
         }
 
-        //[[deprecated("Mock")]]
-        static inline u32 thread_to_numa(u32 thread_id) {
-            return thread_id < 2 ? 0 : 1;
-        }
-    }
-
-    namespace parallel {
         template<class Func>
         static inline void each_index(const u32 *const boundaries, Func f) {
             for (u32 thread_id = 0; thread_id < num_threads; ++thread_id) {
@@ -231,6 +167,19 @@ namespace hoshizora {
         }
 
         template<class Func>
+        static inline void each_thread0(const u32 *const boundaries, Func f) {
+            auto tasks = new std::vector<std::function<void()>>();
+            for (u32 thread_id = 0; thread_id < num_threads; ++thread_id) {
+                tasks->emplace_back([&, thread_id]() {
+                    const auto numa_id = mock::thread_to_numa(thread_id);
+                    // require thread-safe function
+                    f(numa_id, thread_id, boundaries[thread_id], boundaries[thread_id + 1]);
+                });
+            }
+            pool.push_tasks(tasks);
+        }
+
+        template<class Func>
         static inline void each_numa_node(const u32 *const boundaries, Func f) {
             u32 numa_id = 0;
             u32 lower = boundaries[0];
@@ -247,17 +196,25 @@ namespace hoshizora {
 
         template<class Func>
         static inline void each_numa_node0(const u32 *const boundaries, Func f) {
+            auto tasks = new std::vector<std::function<void()>>();
             u32 numa_id = 0;
             u32 lower = boundaries[0];
 
             for (u32 thread_id = 0; thread_id < num_threads; ++thread_id) {
                 if (thread_id == num_threads - 1 || numa_id != mock::thread_to_numa(thread_id + 1)) {
-                    f(numa_id, lower, boundaries[thread_id + 1]);
+                    const auto upper = boundaries[thread_id + 1];
+                    tasks->emplace_back([&, numa_id, thread_id, lower, upper]() {
+                        f(numa_id, lower, upper); // require thread-safe function
+                    });
 
                     numa_id++; // TODO: mock::thread_to_numa
                     lower = boundaries[thread_id + 1];
+                } else {
+                    tasks->emplace_back([]() {}); // FIXME
                 }
             }
+
+            pool.push_tasks(tasks);
         }
 
         template<class Func>

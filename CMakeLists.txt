@@ -7,9 +7,9 @@ set(CMAKE_CXX_FLAGS_DEBUG "-Wall -O0 -g -DSPDLOG_DEBUG_ON")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
 if (UNIX AND NOT APPLE)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -lnuma")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -lnuma -DSUPPORT_NUMA")
 endif ()
 
 include_directories(src src/external)
-set(SOURCE_FILES src/hoshizora/main.cpp src/hoshizora/core/model/graph.h src/hoshizora/core/util/includes.h src/hoshizora/core/io/io.h src/hoshizora/app/pagerank.h src/hoshizora/core/dispatcher/bulksyncdispatcher.h src/hoshizora/core/api/kernel.h src/hoshizora/core/dispatcher/dispatcher.h src/hoshizora/core/util/bulksync_thread_pool.h src/hoshizora/core/util/thread_pool.h src/hoshizora/core/util/sense_reversing_barrier.h)
+set(SOURCE_FILES src/hoshizora/main.cpp src/hoshizora/core/model/graph.h src/hoshizora/core/util/includes.h src/hoshizora/core/io/io.h src/hoshizora/app/pagerank.h src/hoshizora/core/dispatcher/bulksyncdispatcher.h src/hoshizora/core/api/kernel.h src/hoshizora/core/dispatcher/dispatcher.h src/hoshizora/core/util/bulksync_thread_pool.h src/hoshizora/core/util/thread_pool.h src/hoshizora/core/util/sense_reversing_barrier.h src/hoshizora/core/util/numa_allocator.h src/hoshizora/core/util/primitive_includes.h)
 add_executable(hoshizora ${SOURCE_FILES})
