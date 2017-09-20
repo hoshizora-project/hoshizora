@@ -21,7 +21,7 @@ namespace hoshizora {
         Kernel kernel;
 
         // TODO
-        const u32 num_threads = parallel::num_threads;
+        const u32 num_threads = loop::num_threads;
         BulkSyncThreadPool thread_pool;
 
         explicit BulkSyncDispatcher(Graph &graph)
@@ -35,7 +35,7 @@ namespace hoshizora {
         template<class Func>
         inline void push_tasks(Func f, ID *boundaries) {
             auto tasks = new std::vector<std::function<void()>>();
-            parallel::each_thread(boundaries,
+            loop::each_thread(boundaries,
                                   [&](u32 numa_id, u32 thread_id, u32 lower, u32 upper) {
                                       tasks->emplace_back([=, &f]() {
                                           for (ID dst = lower; dst < upper; ++dst) {

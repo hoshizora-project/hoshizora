@@ -17,6 +17,9 @@
 #include <cpuid.h>
 #include <mach/thread_act.h>
 #endif
+#ifdef SUPPORT_NUMA
+#include <numa.h>
+#endif
 #include "external/spdlog/spdlog.h"
 
 namespace hoshizora {
@@ -40,19 +43,36 @@ namespace hoshizora {
         }
     }
 
-    namespace heap {
-        template<class Type>
-        static inline Type *array(u64 length) {
-            return static_cast<Type *>(malloc(sizeof(Type) * length));
+    namespace mem {
+        template<class T>
+        static inline T *alloc(u64 length) {
+#ifdef SUPPORT_NUMA
+            return static_cast<T *>(numa_alloc_local(sizeof(T) * length));
+#else
+            return static_cast<T *>(malloc(sizeof(T) * length));
+#endif
         }
 
-        template<class Type>
-        static inline Type *array0(u64 length) {
-            auto arr = array<Type>(length);
-            // TODO
-            for (size_t i = 0; i < length; ++i) {
-                arr[i] = 0;
-            }
+        template<class T>
+        static inline T *alloc(u64 length, u32 node) {
+#ifdef SUPPORT_NUMA
+            return static_cast<T *>(numa_alloc_onnode(sizeof(T) * length), node);
+#else
+            return static_cast<T *>(malloc(sizeof(T) * length));
+#endif
+        }
+
+        template<class T>
+        static inline T *calloc(u64 length) {
+            auto arr = alloc<T>(length);
+            std::memset(arr, 0, sizeof(T) * length);
+            return arr;
+        }
+
+        template<class T>
+        static inline T *calloc(u64 length, u32 node) {
+            auto arr = alloc<T>(length, node);
+            std::memset(arr, 0, sizeof(T) * length);
             return arr;
         }
     }
@@ -78,26 +98,19 @@ namespace hoshizora {
         }
     }
 
-    namespace parallel {
-        static constexpr bool support_numa = true;
+    namespace loop {
+        static constexpr bool support_numa =
+#ifdef SUPPORT_NUMA
+                true;
+#else
+                false;
+#endif
         static const u32 num_threads = std::thread::hardware_concurrency();
         static const u32 num_numa_nodes = 2;
         static const std::vector<u32> numa_boundaries = {0, 2, 4};
     }
 
     namespace mock {
-        template<class T>
-        //[[deprecated("Mock")]]
-        static inline T *numa_alloc_onnode(size_t size, int node) {
-            // TODO: constexpr (pended by CLion)
-            if (parallel::support_numa) {
-                // TODO
-                return reinterpret_cast<T *>(malloc(size));
-            } else {
-                return reinterpret_cast<T *>(malloc(size));
-            }
-        }
-
         //[[deprecated("Mock")]]
         static inline u32 thread_to_numa(u32 thread_id) {
             return thread_id < 2 ? 0 : 1;

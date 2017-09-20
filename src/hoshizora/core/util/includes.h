@@ -24,12 +24,12 @@ namespace hoshizora {
     template<class T>
     using numa_vector =
 #ifdef SUPPORT_NUMA
-    std::vector<T, NumaAllocator<T>>;
+    std::vector<T, NumaAllocatorLocal<T>>;
 #else
     std::vector<T>;
 #endif
 
-    namespace heap {
+    namespace mem {
         // TODO: SIMD-aware
         template<class T>
         struct DiscreteArray {
@@ -45,7 +45,7 @@ namespace hoshizora {
                     : data(data), range(range) {}
 
             ~DiscreteArray() {
-                //debug::print("freed disc array"+std::to_string(range.size()));
+                //debug::print("freed disc alloc"+std::to_string(range.size()));
             }
 
             // Though like copy constructor, this makes only references numa-local
@@ -108,7 +108,7 @@ namespace hoshizora {
                 range[size - 1] = range[size - 2] + length;
             }
 
-            // significantly slower than normal index access on a single array
+            // significantly slower than normal index access on a single alloc
             //[[deprecated("Recommended to call with hint")]]
             T &operator()(u32 index) {
                 // TODO: sequential search may be faster
@@ -118,21 +118,21 @@ namespace hoshizora {
             }
 
             // TODO
-            // faster than normal index access on a single array
+            // faster than normal index access on a single alloc
             T operator()(u32 index, u32 n, u32 dummy) const {
                 // if constexpr (support_numa) data[n][index - range[n]] else data[0][index];
                 return data[n][index - range[n]];
             }
 
             // TODO
-            // faster than normal index access on a single array
+            // faster than normal index access on a single alloc
             T &operator()(u32 index, u32 n) {
                 // if constexpr (support_numa) data[n][index - range[n]] else data[0][index];
                 return data[n][index - range[n]];
             }
 
             // TODO
-            // significantly faster than normal index access on a single array
+            // significantly faster than normal index access on a single alloc
             /*
             T &operator()(u32 index, u32 n, u32 dummy) {
                 return data[n][local_index];
@@ -141,7 +141,7 @@ namespace hoshizora {
         };
     }
 
-    namespace parallel {
+    namespace loop {
         static ThreadPool pool;
 
         static void quit() {
@@ -219,7 +219,7 @@ namespace hoshizora {
 
         template<class Func>
         static inline void each_numa_node(const u32 *const boundaries,
-                                          const heap::DiscreteArray<u32> &offsets,
+                                          const mem::DiscreteArray<u32> &offsets,
                                           Func f) {
             u32 numa_id = 0;
             u32 lower = boundaries[0];

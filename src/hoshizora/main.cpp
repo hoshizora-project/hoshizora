@@ -20,7 +20,7 @@ namespace hoshizora {
         debug::logger->info("converted");
         BulkSyncDispatcher<PageRankKernel<_Graph>> dispatcher(graph);
         debug::logger->info(dispatcher.run());
-        parallel::quit();
+        loop::quit();
         debug::logger->info("done");
     }
 }

@@ -24,7 +24,7 @@ namespace hoshizora {
         std::mutex mtx;
         std::condition_variable cond;
 
-        explicit ThreadPool() : num_threads(parallel::num_threads) {
+        explicit ThreadPool() : num_threads(loop::num_threads) {
             for (u32 thread_id = 0; thread_id < num_threads; ++thread_id) {
                 auto queue = new std::queue<std::function<void()>>();
                 queue->push([&, thread_id]() {
