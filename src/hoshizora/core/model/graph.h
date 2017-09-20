@@ -131,7 +131,7 @@ namespace hoshizora {
                                              out_offsets.add(offsets, size);
                                          });
 
-                free(tmp_out_offsets); // TODO: maybe numa_free
+                mem::free(tmp_out_offsets, sizeof(ID) * num_vertices);
             }
             out_offsets_is_initialized = true;
         }
@@ -153,7 +153,7 @@ namespace hoshizora {
                                              in_offsets.add(offsets, size);
                                          });
 
-                free(tmp_in_offsets); // TODO: maybe numa_free
+                mem::free(tmp_in_offsets, sizeof(ID) * num_vertices);
             }
             in_offsets_is_initialized = true;
         }
@@ -220,7 +220,7 @@ namespace hoshizora {
                                              out_indices.add(indices, size);
                                          });
 
-                free(tmp_out_indices); // TODO: maybe numa_free
+                mem::free(tmp_out_indices, num_edges);
             }
             out_indices_is_initialized = true;
         }
@@ -247,7 +247,7 @@ namespace hoshizora {
                                              in_indices.add(indices, size);
                                          });
 
-                free(tmp_in_indices); // TODO: maybe numa_free
+                mem::free(tmp_in_indices, sizeof(ID) * num_edges);
             }
             in_indices_is_initialized = true;
         }

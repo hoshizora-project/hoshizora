@@ -31,7 +31,7 @@ namespace hoshizora {
 #ifdef __linux__
                     cpu_set_t cpuset;
                     CPU_ZERO(&cpuset);
-                    CPU_SET(threae_id, &cpuset); // FIXME
+                    CPU_SET(thread_id, &cpuset); // FIXME
                     sched_setaffinity(syscall(SYS_gettid), sizeof(cpu_set_t), &cpuset);
 #elif __APPLE__
                     // FIXME: not work properly

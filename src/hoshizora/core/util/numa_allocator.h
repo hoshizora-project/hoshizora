@@ -49,7 +49,7 @@ namespace hoshizora {
         using propagate_on_container_move_assignment = std::true_type;
         using is_always_equal = std::true_type;
 
-        explicit NumaAllocator() noexcept {};
+        explicit NumaAllocatorLocal() noexcept {};
 
         T *allocate(size_t num) {
             auto ret = numa_alloc_local(num * sizeof(T));
@@ -64,14 +64,14 @@ namespace hoshizora {
     };
 
     template<class T1, class T2>
-    bool operator==(const NumaAllocator<T1> &,
-                    const NumaAllocator<T2> &) noexcept {
+    bool operator==(const NumaAllocatorLocal<T1> &,
+                    const NumaAllocatorLocal<T2> &) noexcept {
         return true;
     }
 
     template<class T1, class T2>
-    bool operator!=(const NumaAllocator<T1> &,
-                    const NumaAllocator<T2> &) noexcept {
+    bool operator!=(const NumaAllocatorLocal<T1> &,
+                    const NumaAllocatorLocal<T2> &) noexcept {
         return false;
     }
 }
