@@ -80,7 +80,7 @@ namespace hoshizora {
 #ifdef SUPPORT_NUMA
             numa_free(ptr, size);
 #else
-            free(ptr);
+            std::free(ptr);
 #endif
         }
     }
