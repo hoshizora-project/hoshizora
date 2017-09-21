@@ -24,7 +24,7 @@ namespace hoshizora {
     template<class T>
     using numa_vector =
 #ifdef SUPPORT_NUMA
-    std::vector<T, NumaAllocatorLocal<T>>;
+    std::vector<T, NumaAllocator<T>>;
 #else
     std::vector<T>;
 #endif
@@ -91,12 +91,12 @@ namespace hoshizora {
                 range.emplace_back(range.back() + length);
             }
 
-            void add(std::vector<T> &chunk) {
+            void add(numa_vector<T> &chunk) {
                 data.emplace_back(chunk.data());
                 range.emplace_back(range.back() + chunk.size());
             }
 
-            void add(std::vector<T> &&chunk) {
+            void add(numa_vector<T> &&chunk) {
                 data.emplace_back(chunk.data());
                 range.emplace_back(range.back() + chunk.size());
             }
