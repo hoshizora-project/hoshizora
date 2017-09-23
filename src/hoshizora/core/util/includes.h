@@ -32,10 +32,10 @@ namespace hoshizora {
     namespace mem {
 #ifdef SUPPORT_NUMA
         // TODO
-        static const std::vector<NumaAllocator<void *> *> allocators;
+        static std::vector<NumaAllocator<u32 *> *> allocators;
         static inline void init_allocators() {
-            for(u32 numa_id = 0; numa_id < num_numa_nodes; ++numa_id) {
-                allocators.emplace_back(new NumaAllocator<void *>(numa_id));
+            for(u32 numa_id = 0; numa_id < loop::num_numa_nodes; ++numa_id) {
+                allocators.emplace_back(new NumaAllocator<u32 *>(numa_id));
             }
         }
 #endif
@@ -45,7 +45,7 @@ namespace hoshizora {
         template<class T>
         static inline numa_vector<T> *make_numa_vector(u32 numa_id) {
 #ifdef SUPPORT_NUMA
-            return new numa_vector<T>(*allocators[numa_id]);
+            return new numa_vector<T>(*(mem::allocators[numa_id]));
 #else
             return new numa_vector<T>();
 #endif
