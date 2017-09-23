@@ -3,6 +3,7 @@ project(hoshizora)
 
 set(CMAKE_CXX_COMPILER clang++)
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_FLAGS "-fopenmp -D_GLIBCXX_PARALLEL")
 set(CMAKE_CXX_FLAGS_DEBUG "-Wall -O0 -g -DSPDLOG_DEBUG_ON")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
