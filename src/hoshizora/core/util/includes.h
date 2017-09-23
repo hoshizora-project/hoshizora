@@ -163,7 +163,7 @@ namespace hoshizora {
     }
 
     namespace loop {
-        static ThreadPool pool;
+        ThreadPool pool;
 
         static void quit() {
             pool.quit();
@@ -259,6 +259,13 @@ namespace hoshizora {
                 }
             }
         }
+    }
+
+    static inline void init() {
+        debug::init_logger();
+#ifdef SUPPORT_NUMA
+        mem::init_allocators();
+#endif
     }
 }
 
