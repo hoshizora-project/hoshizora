@@ -43,48 +43,6 @@ namespace hoshizora {
         }
     }
 
-    namespace mem {
-        template<class T>
-        static inline T *malloc(u64 length) {
-#ifdef SUPPORT_NUMA
-            return static_cast<T *>(numa_alloc_local(sizeof(T) * length));
-#else
-            return static_cast<T *>(malloc(sizeof(T) * length));
-#endif
-        }
-
-        template<class T>
-        static inline T *malloc(u64 length, u32 node) {
-#ifdef SUPPORT_NUMA
-            return static_cast<T *>(numa_alloc_onnode(sizeof(T) * length, node));
-#else
-            return static_cast<T *>(malloc(sizeof(T) * length));
-#endif
-        }
-
-        template<class T>
-        static inline T *calloc(u64 length) {
-            auto arr = malloc<T>(length);
-            std::memset(arr, 0, sizeof(T) * length);
-            return arr;
-        }
-
-        template<class T>
-        static inline T *calloc(u64 length, u32 node) {
-            auto arr = malloc<T>(length, node);
-            std::memset(arr, 0, sizeof(T) * length);
-            return arr;
-        }
-
-        static inline void free(void *ptr, size_t size) {
-#ifdef SUPPORT_NUMA
-            numa_free(ptr, size);
-#else
-            std::free(ptr);
-#endif
-        }
-    }
-
     namespace sched {
         static inline i32 get_cpu_id() {
 #ifdef __linux__
@@ -116,6 +74,48 @@ namespace hoshizora {
         static const u32 num_threads = std::thread::hardware_concurrency();
         static const u32 num_numa_nodes = 2;
         static const std::vector<u32> numa_boundaries = {0, 2, 4};
+    }
+
+    namespace mem {
+        template<class T>
+        static inline T *malloc(u64 length) {
+#ifdef SUPPORT_NUMA
+            return static_cast<T *>(numa_alloc_local(sizeof(T) * length));
+#else
+            return static_cast<T *>(std::malloc(sizeof(T) * length));
+#endif
+        }
+
+        template<class T>
+        static inline T *malloc(u64 length, u32 node) {
+#ifdef SUPPORT_NUMA
+            return static_cast<T *>(numa_alloc_onnode(sizeof(T) * length, node));
+#else
+            return static_cast<T *>(std::malloc(sizeof(T) * length));
+#endif
+        }
+
+        template<class T>
+        static inline T *calloc(u64 length) {
+            auto arr = malloc<T>(length);
+            std::memset(arr, 0, sizeof(T) * length);
+            return arr;
+        }
+
+        template<class T>
+        static inline T *calloc(u64 length, u32 node) {
+            auto arr = malloc<T>(length, node);
+            std::memset(arr, 0, sizeof(T) * length);
+            return arr;
+        }
+
+        static inline void free(void *ptr, size_t size) {
+#ifdef SUPPORT_NUMA
+            numa_free(ptr, size);
+#else
+            std::free(ptr);
+#endif
+        }
     }
 
     namespace mock {

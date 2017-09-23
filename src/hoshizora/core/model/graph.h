@@ -38,23 +38,23 @@ namespace hoshizora {
         ID *tmp_in_offsets;
         ID *tmp_in_indices;
 
-        mem::DiscreteArray<ID> out_degrees; // [num_vertices]
-        mem::DiscreteArray<ID> out_offsets; // [num_vertices]
-        mem::DiscreteArray<ID> out_indices; // [num_edges]
-        mem::DiscreteArray<ID *> out_neighbors; // [num_vertices][degrees[i]]
-        mem::DiscreteArray<ID> in_degrees;
-        mem::DiscreteArray<ID> in_offsets;
-        mem::DiscreteArray<ID> in_indices;
-        mem::DiscreteArray<ID *> in_neighbors;
+        colle::DiscreteArray<ID> out_degrees; // [num_vertices]
+        colle::DiscreteArray<ID> out_offsets; // [num_vertices]
+        colle::DiscreteArray<ID> out_indices; // [num_edges]
+        colle::DiscreteArray<ID *> out_neighbors; // [num_vertices][degrees[i]]
+        colle::DiscreteArray<ID> in_degrees;
+        colle::DiscreteArray<ID> in_offsets;
+        colle::DiscreteArray<ID> in_indices;
+        colle::DiscreteArray<ID *> in_neighbors;
         ID *forward_indices; // [num_edges]
         ID *out_boundaries;
         ID *in_boundaries;
         VProp *v_props; // [num_vertices]
         EProp *e_props; // [num_edges]
-        mem::DiscreteArray<VData> v_data; // [num_vertices]
-        mem::DiscreteArray<EData> e_data; // [num_edges]
+        colle::DiscreteArray<VData> v_data; // [num_vertices]
+        colle::DiscreteArray<EData> e_data; // [num_edges]
 
-        mem::DiscreteArray<bool> active_flags; // [num_vertices]
+        colle::DiscreteArray<bool> active_flags; // [num_vertices]
 
         bool out_degrees_is_initialized = false;
         bool out_offsets_is_initialized = false;
@@ -68,12 +68,12 @@ namespace hoshizora {
         bool in_boundaries_is_initialized = false;
         bool forward_indices_is_initialized = false;
 
-        Graph() : out_degrees(mem::DiscreteArray<ID>()),
-                  out_neighbors(mem::DiscreteArray<ID *>()),
-                  in_degrees(mem::DiscreteArray<ID>()),
-                  in_neighbors(mem::DiscreteArray<ID *>()),
-                  v_data(mem::DiscreteArray<VData>()),
-                  e_data(mem::DiscreteArray<EData>()) {}
+        Graph() : out_degrees(colle::DiscreteArray<ID>()),
+                  out_neighbors(colle::DiscreteArray<ID *>()),
+                  in_degrees(colle::DiscreteArray<ID>()),
+                  in_neighbors(colle::DiscreteArray<ID *>()),
+                  v_data(colle::DiscreteArray<VData>()),
+                  e_data(colle::DiscreteArray<EData>()) {}
 
         virtual ~Graph() {
             //debug::print("dest graph");
@@ -126,7 +126,7 @@ namespace hoshizora {
                                          const auto size = numa_id != num_numa_nodes - 1
                                                            ? upper - lower
                                                            : upper - lower + 1; // include cap
-                                         const auto offsets = mem::malloc<u32>(size);
+                                         const auto offsets = mem::malloc<u32>(size, numa_id);
                                          std::memcpy(offsets, tmp_out_offsets + lower, size * sizeof(u32));
                                          out_offsets.add(offsets, size);
                                      });
@@ -148,7 +148,7 @@ namespace hoshizora {
                                          const auto size = numa_id != num_numa_nodes - 1
                                                            ? upper - lower
                                                            : upper - lower + 1; // include cap
-                                         const auto offsets = mem::malloc<u32>(size);
+                                         const auto offsets = mem::malloc<u32>(size, numa_id);
                                          std::memcpy(offsets, tmp_in_offsets + lower, size * sizeof(u32));
                                          in_offsets.add(offsets, size);
                                      });
@@ -164,7 +164,7 @@ namespace hoshizora {
 
             loop::each_numa_node(out_boundaries, [&](u32 numa_id, u32 lower, u32 upper) {
                 const auto size = upper - lower;
-                const auto degrees = mem::malloc<ID>(size);
+                const auto degrees = mem::malloc<ID>(size, numa_id);
                 for (u32 i = lower; i < upper; ++i) {
                     degrees[i - lower] = out_offsets(i + 1, numa_id) - out_offsets(i, numa_id);
                 }
@@ -185,7 +185,7 @@ namespace hoshizora {
 
             loop::each_numa_node(in_boundaries, [&](u32 numa_id, u32 lower, u32 upper) {
                 const auto size = upper - lower;
-                const auto degrees = mem::malloc<ID>(size);
+                const auto degrees = mem::malloc<ID>(size, numa_id);
                 for (u32 i = lower; i < upper; ++i) {
                     degrees[i - lower] = in_offsets(i + 1, numa_id) - in_offsets(i, numa_id);
                 }
@@ -215,7 +215,7 @@ namespace hoshizora {
                                                           ? out_offsets(upper, numa_id + 1)
                                                           : out_offsets(upper, numa_id);
                                          const auto size = end - start;
-                                         const auto indices = mem::malloc<u32>(size);
+                                         const auto indices = mem::malloc<u32>(size, numa_id);
                                          std::memcpy(indices, tmp_out_indices + start, size * sizeof(u32));
                                          out_indices.add(indices, size);
                                      });
@@ -240,7 +240,7 @@ namespace hoshizora {
                                                           ? in_offsets(upper, numa_id + 1)
                                                           : in_offsets(upper, numa_id);
                                          const auto size = end - start;
-                                         const auto indices = mem::malloc<u32>(size);
+                                         const auto indices = mem::malloc<u32>(size, numa_id);
                                          std::memcpy(indices,
                                                      tmp_in_indices + start,
                                                      size * sizeof(u32));
@@ -258,7 +258,7 @@ namespace hoshizora {
 
             loop::each_numa_node(out_boundaries,
                                  [&](u32 numa_id, u32 lower, u32 upper) {
-                                     auto out_neighbor = new numa_vector<ID *>(numa_id);
+                                     auto out_neighbor = colle::make_numa_vector<ID *>(numa_id);
                                      out_neighbor->reserve(upper - lower);
                                      for (ID i = lower; i < upper; ++i) {
                                          out_neighbor->emplace_back(
@@ -276,7 +276,7 @@ namespace hoshizora {
 
             loop::each_numa_node(in_boundaries,
                                  [&](u32 numa_id, u32 lower, u32 upper) {
-                                     auto in_neighbor = new numa_vector<ID *>(numa_id);
+                                     auto in_neighbor = colle::make_numa_vector<ID *>(numa_id);
                                      in_neighbor->reserve(upper - lower);
                                      for (ID i = lower; i < upper; ++i) {
                                          in_neighbor->emplace_back(
@@ -319,7 +319,7 @@ namespace hoshizora {
             // assert(in_boundaries_is_initialized);
 
             if (allow_overwrite) {
-                v_data = *(new mem::DiscreteArray<VData>());
+                v_data = *(new colle::DiscreteArray<VData>());
             }
 
             // TODO: consider both out and in boundaries (?)
@@ -339,7 +339,7 @@ namespace hoshizora {
             // assert(in_offsets_is_initialized);
 
             if (allow_overwirte) {
-                e_data = *(new mem::DiscreteArray<EData>());
+                e_data = *(new colle::DiscreteArray<EData>());
             }
 
             // TODO: consider both out and in boundaries (?)

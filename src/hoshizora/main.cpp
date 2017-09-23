@@ -12,6 +12,9 @@ namespace hoshizora {
     void main() {
         using _Graph = Graph<u32, empty_t, empty_t, f32, f32>;
         debug::init_logger();
+#ifdef SUPPORT_NUMA
+        mem::init_allocators();
+#endif
         debug::logger->info("started");
         auto edge_list = IO::fromFile0("../../data/email-Eu-core.hszr");
         //auto edge_list = IO::fromFile0("../../data/web-Google.hszr");

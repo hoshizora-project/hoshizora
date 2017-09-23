@@ -30,6 +30,27 @@ namespace hoshizora {
 #endif
 
     namespace mem {
+#ifdef SUPPORT_NUMA
+        // TODO
+        static const std::vector<NumaAllocator<void *> *> allocators;
+        static inline void init_allocators() {
+            for(u32 numa_id = 0; numa_id < num_numa_nodes; ++numa_id) {
+                allocators.emplace_back(new NumaAllocator<void *>(numa_id));
+            }
+        }
+#endif
+    }
+
+    namespace colle {
+        template<class T>
+        static inline numa_vector<T> *make_numa_vector(u32 numa_id) {
+#ifdef SUPPORT_NUMA
+            return new numa_vector<T>(*allocators[numa_id]);
+#else
+            return new numa_vector<T>();
+#endif
+        }
+
         // TODO: SIMD-aware
         template<class T>
         struct DiscreteArray {
@@ -219,7 +240,7 @@ namespace hoshizora {
 
         template<class Func>
         static inline void each_numa_node(const u32 *const boundaries,
-                                          const mem::DiscreteArray<u32> &offsets,
+                                          const colle::DiscreteArray<u32> &offsets,
                                           Func f) {
             u32 numa_id = 0;
             u32 lower = boundaries[0];
