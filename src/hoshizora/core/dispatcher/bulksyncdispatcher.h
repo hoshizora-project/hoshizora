@@ -36,13 +36,13 @@ namespace hoshizora {
         inline void push_tasks(Func f, ID *boundaries) {
             auto tasks = new std::vector<std::function<void()>>();
             loop::each_thread(boundaries,
-                                  [&](u32 numa_id, u32 thread_id, u32 lower, u32 upper) {
-                                      tasks->emplace_back([=, &f]() {
-                                          for (ID dst = lower; dst < upper; ++dst) {
-                                              f(dst, numa_id);
-                                          }
-                                      });
+                              [&](u32 numa_id, u32 thread_id, u32 lower, u32 upper) {
+                                  tasks->emplace_back([=, &f]() {
+                                      for (ID dst = lower; dst < upper; ++dst) {
+                                          f(dst, numa_id);
+                                      }
                                   });
+                              });
             thread_pool.push_tasks(tasks);
         }
 
@@ -89,16 +89,16 @@ namespace hoshizora {
                         const auto src = prev_graph->in_neighbors(dst, numa_id)[i];
                         const auto index = prev_graph->in_offsets(dst, numa_id) + i;
 
-                        curr_graph->v_data(dst, numa_id) = kernel.sum(dst, src,
-                                                                      curr_graph->v_data(dst, numa_id),
-                                                                      curr_graph->e_data(index/*, numa_id*/),
-                                                                      *prev_graph);
+                        curr_graph->v_data(dst/*, numa_id*/) = kernel.sum(dst, src,
+                                                                          curr_graph->v_data(dst/*, numa_id*/),
+                                                                          curr_graph->e_data(index/*, numa_id*/),
+                                                                          *prev_graph);
                     }
 
-                    curr_graph->v_data(dst, numa_id) = kernel.apply(dst,
-                                                                    prev_graph->v_data(dst, numa_id),
-                                                                    curr_graph->v_data(dst, numa_id),
-                                                                    *prev_graph);
+                    curr_graph->v_data(dst/*, numa_id*/) = kernel.apply(dst,
+                                                                        prev_graph->v_data(dst/*, numa_id*/),
+                                                                        curr_graph->v_data(dst/*, numa_id*/),
+                                                                        *prev_graph);
                 }, prev_graph->in_boundaries);
             }
 

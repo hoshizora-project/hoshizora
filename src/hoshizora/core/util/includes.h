@@ -138,6 +138,13 @@ namespace hoshizora {
                 return data[n][index - range[n]];
             }
 
+            T &operator()(u32 index, void *dummy) const {
+                // TODO: sequential search may be faster
+                const auto n = std::distance(begin(range) + 1,
+                                             upper_bound(begin(range), end(range), index));
+                return data[n][index - range[n]];
+            }
+
             // TODO
             // faster than normal index access on a single malloc
             T operator()(u32 index, u32 n, u32 dummy) const {
