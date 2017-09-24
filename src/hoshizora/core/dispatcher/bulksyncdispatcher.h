@@ -84,7 +84,7 @@ namespace hoshizora {
 
                 // sum and apply
                 push_tasks([kernel, curr_graph, prev_graph](ID dst, u32 numa_id) {
-                    curr_graph->v_data(dst, numa_id) = kernel.zero(dst, *prev_graph); // TODO
+                    curr_graph->v_data(dst/*, numa_id*/) = kernel.zero(dst, *prev_graph); // TODO
                     for (ID i = 0, end = prev_graph->in_degrees(dst, numa_id); i < end; ++i) {
                         const auto src = prev_graph->in_neighbors(dst, numa_id)[i];
                         const auto index = prev_graph->in_offsets(dst, numa_id) + i;
