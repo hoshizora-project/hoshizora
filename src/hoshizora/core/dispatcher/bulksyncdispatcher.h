@@ -56,7 +56,7 @@ namespace hoshizora {
                                           f(dst, numa_id);
                                       }
                                       if (thread_id == num_threads - 1) {
-                                          debug::logger->info("fin iter: {}", iter);
+                                          SPDLOG_DEBUG(debug::logger, "fin iter: {}", iter);
                                       }
                                   });
                               });
@@ -66,7 +66,7 @@ namespace hoshizora {
         std::string run() {
             constexpr auto num_iters = 100;
             for (auto iter = 0u; iter < num_iters; ++iter) {
-                debug::logger->info("push iter: {}", iter);
+                SPDLOG_DEBUG(debug::logger, "push iter: {}", iter);
                 auto kernel = this->kernel; // FIXME
                 auto prev_graph = this->prev_graph;
                 auto curr_graph = this->curr_graph;
@@ -81,7 +81,7 @@ namespace hoshizora {
                         //}
                     }, prev_graph->out_boundaries);
                 } else {
-                    thread_pool.push_task([prev_graph, curr_graph](){
+                    thread_pool.push_task([prev_graph, curr_graph]() {
                         Graph::Next(*prev_graph, *curr_graph);
                     });
                 }
