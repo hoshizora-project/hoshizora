@@ -76,6 +76,18 @@ namespace hoshizora {
             }
         }
 
+        void push_task(std::function<void()> task) {
+            mtx.lock();
+            task_queues[0]->push(std::move(task));
+            mtx.unlock();
+
+            for (u32 n = 1; n < num_threads; ++n) {
+                mtx.lock();
+                task_queues[n]->push([](){});
+                mtx.unlock();
+            }
+        }
+
         void push_tasks(std::vector<std::function<void()>> *tasks) {
             assert(num_threads == tasks->size());
 

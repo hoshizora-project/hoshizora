@@ -46,9 +46,27 @@ namespace hoshizora {
             thread_pool.push_tasks(tasks);
         }
 
+        template<class Func>
+        inline void push_tasks(Func f, ID *boundaries, u32 iter) {
+            auto tasks = new std::vector<std::function<void()>>();
+            loop::each_thread(boundaries,
+                              [&](u32 numa_id, u32 thread_id, u32 lower, u32 upper) {
+                                  tasks->emplace_back([=, &f]() {
+                                      for (ID dst = lower; dst < upper; ++dst) {
+                                          f(dst, numa_id);
+                                      }
+                                      if (thread_id == num_threads - 1) {
+                                          debug::logger->info("fin iter: {}", iter);
+                                      }
+                                  });
+                              });
+            thread_pool.push_tasks(tasks);
+        }
+
         std::string run() {
-            constexpr auto num_iters = 5;
+            constexpr auto num_iters = 100;
             for (auto iter = 0u; iter < num_iters; ++iter) {
+                debug::logger->info("push iter: {}", iter);
                 auto kernel = this->kernel; // FIXME
                 auto prev_graph = this->prev_graph;
                 auto curr_graph = this->curr_graph;
@@ -63,7 +81,9 @@ namespace hoshizora {
                         //}
                     }, prev_graph->out_boundaries);
                 } else {
-                    Graph::Next(*prev_graph, *curr_graph); // FIXME: must be executed in task queue
+                    thread_pool.push_task([prev_graph, curr_graph](){
+                        Graph::Next(*prev_graph, *curr_graph);
+                    });
                 }
 
                 // scatter and gather
@@ -99,7 +119,7 @@ namespace hoshizora {
                                                                         prev_graph->v_data(dst/*, numa_id*/),
                                                                         curr_graph->v_data(dst/*, numa_id*/),
                                                                         *prev_graph);
-                }, prev_graph->in_boundaries);
+                }, prev_graph->in_boundaries, iter);
             }
 
             thread_pool.quit();

@@ -41,7 +41,7 @@ namespace hoshizora {
                 num_waits.store(num_threads);
                 sense.store(!sense, std::memory_order_release);
             } else {
-                while (_sense != sense);
+                while (_sense != sense) {}
                 SPDLOG_DEBUG(debug::logger, "wakedup[{}]", thread_id);
             }
 
