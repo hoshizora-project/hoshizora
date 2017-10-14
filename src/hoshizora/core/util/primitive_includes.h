@@ -15,6 +15,7 @@
 #include <chrono>
 #ifdef __linux__
 #include <sched.h>
+#include "external/pcm/cpucounters.h"
 #elif __APPLE__
 #include <cpuid.h>
 #include <mach/thread_act.h>
@@ -38,19 +39,36 @@ namespace hoshizora {
     using empty_t = std::nullptr_t[0];
 
     namespace debug {
-        const auto logger = spdlog::stderr_color_mt("hoshizora");
+        static const auto logger = spdlog::stderr_color_mt("hoshizora");
+
+#ifdef __linux__
+        static const auto pcm = PCM::getInstance();
 
         static inline void init_logger() {
             logger->set_level(spdlog::level::debug);
+            pcm->program(PCM::DEFAULT_EVENTS, nullptr);
         }
+#else
+        static inline void init_logger() {
+            logger->set_level(spdlog::level::debug);
+        }
+#endif
 
         struct partial_score {
             const std::chrono::high_resolution_clock::time_point time;
-            // const pcm_metrics pcm; // TODO
+
+#ifdef __linux__
+            const SystemCounterState counter;
 
             explicit partial_score(
-                    std::chrono::high_resolution_clock::time_point time)
-                    : time(time) {}
+                    std::chrono::high_resolution_clock::time_point time,
+                    SystemCounterState counter)
+                    : time(time), counter(counter) {}
+#else
+            explicit partial_score(
+                  std::chrono::high_resolution_clock::time_point time)
+                  : time(time) {}
+#endif
         };
 
         std::unordered_map<std::string, std::unique_ptr<partial_score>> scores;
@@ -58,15 +76,36 @@ namespace hoshizora {
         void point(const std::string &key) {
             logger->info(key);
             const auto time = std::chrono::high_resolution_clock::now();
+#ifdef __linux__
+            const auto counter = getSystemCounterState();
+
+            scores[key] = std::make_unique<partial_score>(time, counter);
+#else
             scores[key] = std::make_unique<partial_score>(time);
+#endif
         }
 
         void print(const std::string &start_key,
                    const std::string &end_key) {
-            logger->info("\n[{} -> {}]\nElapsedTime[msec]:\t{}",
+#ifdef __linux__
+          const auto start = scores[start_key]->counter;
+          const auto end = scores[end_key]->counter;
+            logger->info("\n[{} -> {}]\nElapsedTime[sec]:\t{}\nRead[GB]:\t{}\nWrite[GB]:\t{}\nL2CacheMisses:\t{}\nL3CacheMisses:\t{}\nL2CacheHitRatio:\t{}\nL3CacheHitRatio:\t{}",
                          start_key, end_key,
                          std::chrono::duration_cast<std::chrono::milliseconds>(
-                                 scores[end_key]->time - scores[start_key]->time).count());
+                                 scores[end_key]->time - scores[start_key]->time).count() / 1000.0,
+                         getBytesReadFromMC(start, end) / 1024.0 / 1024.0 / 1024.0,
+                         getBytesWrittenToMC(start, end) / 1024.0 / 1024.0 / 1024.0,
+                         getL2CacheMisses(start, end),
+                         getL3CacheMisses(start, end),
+                         getL2CacheHitRatio(start, end),
+                         getL3CacheHitRatio(start, end));
+#else
+            logger->info("\n[{} -> {}]\nElapsedTime[sec]:\t{}\nRead[GB]:\t{}\nWrite[GB]:\t{}\nL2CacheMisses:\t{}\nL3CacheMisses:\t{}\nL2CacheHitRatio:\t{}\nL3CacheHitRatio:\t{}",
+                         start_key, end_key,
+                         std::chrono::duration_cast<std::chrono::milliseconds>(
+                                 scores[end_key]->time - scores[start_key]->time).count() / 1000.0);
+#endif
         }
     }
 
@@ -148,7 +187,7 @@ namespace hoshizora {
     namespace mock {
         //[[deprecated("Mock")]]
         static inline u32 thread_to_numa(u32 thread_id) {
-            return thread_id < 2 ? 0 : 1;
+            return thread_id < 36 ? 0 : 1;
         }
     }
 }
