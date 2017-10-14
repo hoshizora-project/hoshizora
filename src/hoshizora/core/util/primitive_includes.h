@@ -10,7 +10,9 @@
 #include <cassert>
 #include <thread>
 #include <string>
-#include <iostream>
+#include <unordered_map>
+#include <initializer_list>
+#include <chrono>
 #ifdef __linux__
 #include <sched.h>
 #elif __APPLE__
@@ -40,6 +42,31 @@ namespace hoshizora {
 
         static inline void init_logger() {
             logger->set_level(spdlog::level::debug);
+        }
+
+        struct partial_score {
+            const std::chrono::high_resolution_clock::time_point time;
+            // const pcm_metrics pcm; // TODO
+
+            explicit partial_score(
+                    std::chrono::high_resolution_clock::time_point time)
+                    : time(time) {}
+        };
+
+        std::unordered_map<std::string, std::unique_ptr<partial_score>> scores;
+
+        void point(const std::string &key) {
+            logger->info(key);
+            const auto time = std::chrono::high_resolution_clock::now();
+            scores[key] = std::make_unique<partial_score>(time);
+        }
+
+        void print(const std::string &start_key,
+                   const std::string &end_key) {
+            logger->info("\n[{} -> {}]\nElapsedTime[msec]:\t{}",
+                         start_key, end_key,
+                         std::chrono::duration_cast<std::chrono::milliseconds>(
+                                 scores[end_key]->time - scores[start_key]->time).count());
         }
     }
 
