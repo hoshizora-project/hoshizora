@@ -25,8 +25,8 @@ namespace hoshizora {
         bool force_quit_flag = false;
         u32 num_threads;
         std::mutex mtx; // TODO
-        //spin_barrier barrier;
-        condition_variable_barrier barrier;
+        spin_barrier barrier;
+        //condition_variable_barrier barrier;
 
         explicit BulkSyncThreadPool(u32 num_threads)
                 : num_threads(num_threads), barrier(num_threads) {
