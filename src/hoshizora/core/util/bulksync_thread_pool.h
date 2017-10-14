@@ -14,7 +14,8 @@
 #include <mach/thread_act.h>
 #endif
 #include "hoshizora/core/util/includes.h"
-#include "hoshizora/core/util/sense_reversing_barrier.h"
+#include "hoshizora/core/util/spin_barrier.h"
+#include "hoshizora/core/util/condition_variable_barrier.h"
 
 namespace hoshizora {
     struct BulkSyncThreadPool {
@@ -24,7 +25,8 @@ namespace hoshizora {
         bool force_quit_flag = false;
         u32 num_threads;
         std::mutex mtx; // TODO
-        SenseReversingBarrier barrier;
+        //spin_barrier barrier;
+        condition_variable_barrier barrier;
 
         explicit BulkSyncThreadPool(u32 num_threads)
                 : num_threads(num_threads), barrier(num_threads) {
