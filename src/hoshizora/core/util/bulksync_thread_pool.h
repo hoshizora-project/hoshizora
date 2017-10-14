@@ -83,7 +83,7 @@ namespace hoshizora {
 
             for (u32 n = 1; n < num_threads; ++n) {
                 mtx.lock();
-                task_queues[n]->push([](){});
+                task_queues[n]->push([]() {});
                 mtx.unlock();
             }
         }
