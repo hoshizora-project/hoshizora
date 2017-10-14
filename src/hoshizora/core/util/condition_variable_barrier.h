@@ -37,7 +37,6 @@ namespace hoshizora {
         void wait(u32 thread_id) {
             int _sense = local_sense[tid2idx(thread_id)];
 
-            SPDLOG_DEBUG(debug::logger, "wait[{}]", thread_id);
             if (num_waits.fetch_sub(1) == 1) {
                 SPDLOG_DEBUG(debug::logger, "wakeup[{}]", thread_id);
 
@@ -47,6 +46,7 @@ namespace hoshizora {
                 cond.notify_all();
             } else {
                 std::unique_lock<std::mutex> ul(mtx);
+                SPDLOG_DEBUG(debug::logger, "wait[{}]", thread_id);
                 cond.wait(ul, [&]() { return _sense == sense; });
                 SPDLOG_DEBUG(debug::logger, "wakedup[{}]", thread_id);
             }
