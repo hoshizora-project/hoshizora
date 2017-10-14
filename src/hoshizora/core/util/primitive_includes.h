@@ -101,7 +101,7 @@ namespace hoshizora {
                          getL2CacheHitRatio(start, end),
                          getL3CacheHitRatio(start, end));
 #else
-            logger->info("\n[{} -> {}]\nElapsedTime[sec]:\t{}\nRead[GB]:\t{}\nWrite[GB]:\t{}\nL2CacheMisses:\t{}\nL3CacheMisses:\t{}\nL2CacheHitRatio:\t{}\nL3CacheHitRatio:\t{}",
+            logger->info("\n[{} -> {}]\nElapsedTime[sec]:\t{}",
                          start_key, end_key,
                          std::chrono::duration_cast<std::chrono::milliseconds>(
                                  scores[end_key]->time - scores[start_key]->time).count() / 1000.0);
@@ -187,7 +187,7 @@ namespace hoshizora {
     namespace mock {
         //[[deprecated("Mock")]]
         static inline u32 thread_to_numa(u32 thread_id) {
-            return thread_id < 36 ? 0 : 1;
+            return thread_id < 2 ? 0 : 1;
         }
     }
 }

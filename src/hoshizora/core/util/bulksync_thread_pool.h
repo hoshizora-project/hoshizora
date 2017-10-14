@@ -41,13 +41,13 @@ namespace hoshizora {
                     sched_setaffinity(syscall(SYS_gettid), sizeof(cpu_set_t), &cpuset);
 #elif __APPLE__
                     // FIXME: not work properly
-                    const auto policy = thread_affinity_policy_data_t{
-                            static_cast<i32>(thread_id)
-                    }; // FIXME
-                    thread_policy_set(pthread_mach_thread_np(pool[thread_id].native_handle()),
-                                      THREAD_AFFINITY_POLICY,
-                                      (thread_policy_t) &policy,
-                                      THREAD_AFFINITY_POLICY_COUNT);
+                    //const auto policy = thread_affinity_policy_data_t{
+                    //        static_cast<i32>(thread_id)
+                    //}; // FIXME
+                    //thread_policy_set(pthread_mach_thread_np(pool[thread_id].native_handle()),
+                    //                  THREAD_AFFINITY_POLICY,
+                    //                  (thread_policy_t) &policy,
+                    //                  THREAD_AFFINITY_POLICY_COUNT);
 #else
                     debug::logger->info("No thread affinity")
 #endif
