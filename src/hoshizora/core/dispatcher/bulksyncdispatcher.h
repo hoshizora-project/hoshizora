@@ -24,10 +24,12 @@ namespace hoshizora {
         const u32 num_threads = loop::num_threads;
         BulkSyncThreadPool thread_pool;
 
-        explicit BulkSyncDispatcher(Graph &graph)
+        const u32 num_iters;
+
+        explicit BulkSyncDispatcher(Graph &graph, u32 num_iters)
                 : prev_graph(&graph), curr_graph(&graph),
                   num_vertices(graph.num_vertices), num_edges(graph.num_edges),
-                  thread_pool(num_threads) {
+                  thread_pool(num_threads), num_iters(num_iters) {
             curr_graph->set_v_data(true);
             curr_graph->set_e_data(true);
         }
@@ -64,7 +66,6 @@ namespace hoshizora {
         }
 
         std::string run() {
-            constexpr auto num_iters = 100;
             for (auto iter = 0u; iter < num_iters; ++iter) {
                 SPDLOG_DEBUG(debug::logger, "push iter: {}", iter);
                 auto kernel = this->kernel; // FIXME
