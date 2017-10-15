@@ -8,6 +8,7 @@ phony: ;
 debug:
 	mkdir -p ${DEBUG_BUILD_DIR}
 	cd ${DEBUG_BUILD_DIR} && \
+		export CXX=clang++ && \
 		cmake -DCMAKE_BUILD_TYPE=Debug .. && \
 		make
 
@@ -15,8 +16,12 @@ debug:
 release:
 	mkdir -p ${BUILD_DIR}
 	cd ${BUILD_DIR} && \
+		export CXX=clang++ && \
 		cmake -DCMAKE_BUILD_TYPE=Release .. && \
 		make
+
+.PHONY: all
+all: release debug
 
 .PHONY: clean-debug
 clean-debug:
