@@ -1,3 +1,6 @@
 [submodule "src/external/pcm"]
 	path = src/external/pcm
 	url = git@github.com:opcm/pcm.git
+[submodule "src/external/FastPFor"]
+	path = src/external/FastPFor
+	url = git@github.com:amaya382/FastPFor.git
