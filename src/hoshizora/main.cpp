@@ -31,17 +31,21 @@ namespace hoshizora {
         debug::print("converted", "done");
         loop::quit();
 
+        
         a32_vector<u32> ints;
-        a32_vector<u32> offsets = {0,100,200};
-        for(u32 j=0;j<3;++j){for(u32 i=0;i<100;++i){ints.emplace_back(i);}}
-        a32_vector<u8> compressed(600);
-        debug::logger->info("enc: {}", ints.size());
+        a32_vector<u32> offsets = {0,1000000,2000000,3000000};
+        for(u32 j=0;j<3;++j){for(u32 i=0;i<1000000;++i){ints.emplace_back(i);}}
+        a32_vector<u8> compressed(6000000);
+        debug::point("encstart");
         encode(ints.data(),offsets.data(),3,compressed.data());
-        a32_vector<u32> decompressed(300);
+        debug::point("encend");
+        a32_vector<u32> decompressed(3000000);
         a32_vector<u32> decompressed_offsets(3);
-        debug::logger->info("dec");
+        debug::point("decstart");
         decode(compressed.data(),3,decompressed.data(),decompressed_offsets.data());
-        for(const auto &i: decompressed)debug::logger->info(i);
+        debug::point("decend");
+        debug::print("encstart", "encend");
+        debug::print("decstart", "decend");
     }
 }
 

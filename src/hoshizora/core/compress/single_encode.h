@@ -77,23 +77,39 @@ static uint32_t encode(const uint32_t *__restrict const in, const uint32_t size,
     const uint32_t remain = size - in_offset;
     if (remain > 0) {
       const auto flag_idx = out_offset;
-      out_offset++;
+      out_offset++; // flags
+      if(in_offset == 0) {
+          if (in[0] <= 0xFFFFu) {
+              reinterpret_cast<uint16_t *__restrict const>(out + out_offset)[0] =
+                      static_cast<uint16_t>(in[0]);
+              out_offset += 2u;
+          } else {
+              reinterpret_cast<uint32_t *__restrict const>(out + out_offset)[0] = in[0];
+              out_offset += 4u;
+              // nibble from lower bit
+              out[flag_idx] = 0b00000001u;
+          }
+          in_offset++;
+      }
       for (; in_offset < size; in_offset++) {
         const auto diff = in[in_offset] - in[in_offset - 1u];
         if (diff <= 0xFFFFu) {
-          reinterpret_cast<uint16_t *__restrict const>(out + out_offset)[0] = diff;
+          reinterpret_cast<uint16_t *__restrict const>(out + out_offset)[0] =
+                  static_cast<uint16_t>(diff);
           out_offset += 2u;
         }
         else {
           reinterpret_cast<uint32_t *__restrict const>(out + out_offset)[0] = diff;
           out_offset += 4u;
-          out[flag_idx] |= 0b00000001u << (size - in_offset - 1u);
+          // nibble from lower bit
+          out[flag_idx] |= 0b00000001u << (remain - (size - in_offset));
         }
       }
 
       out_offset += (8u - remain) * 2u; // skip for overrun in decode
       // if not exists, decoder reads out of byte array
     }
+
     return out_offset;
   }
   else {

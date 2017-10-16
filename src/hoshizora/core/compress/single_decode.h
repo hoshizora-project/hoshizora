@@ -408,8 +408,9 @@ static uint32_t decode(const uint8_t *__restrict const in, const uint32_t size, 
 
     const uint16_t remain = size - out_offset;
     if (remain > 0u) {
+      const auto prev = out_offset == 0 ? 0 : out[out_offset - 1u];
       const auto consumed = ungaps[in[in_offset]](
-        in + in_offset + 1u, out[out_offset - 1u], out + out_offset);
+        in + in_offset + 1u, prev, out + out_offset);
 
       in_offset += 1u + consumed;
       out_offset += LENGTH - 1u;
