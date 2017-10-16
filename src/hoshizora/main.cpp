@@ -14,10 +14,9 @@ namespace hoshizora {
     void main(int argc, char *argv[]) {
         using _Graph = Graph<u32, empty_t, empty_t, f32, f32>;
         init();
-        const u32 num_iters = argc > 1 ? (u32) std::strtol(argv[1], nullptr, 10) : 1000;
+        const u32 num_iters = argc > 2 ? (u32) std::strtol(argv[2], nullptr, 10) : 1000;
         debug::point("started");
-        //auto edge_list = IO::fromFile0("../../data/email-Eu-core.hszr");
-        auto edge_list = IO::fromFile0("../../data/web-Google.hszr");
+        auto edge_list = IO::fromFile0(argv[1]);
         debug::point("loaded");
         auto graph = _Graph::FromEdgeList(edge_list.data(), edge_list.size());
         debug::point("converted");
@@ -31,7 +30,7 @@ namespace hoshizora {
         debug::print("converted", "done");
         loop::quit();
 
-        
+
         a32_vector<u32> ints;
         a32_vector<u32> offsets = {0,1000000,2000000,3000000};
         for(u32 j=0;j<3;++j){for(u32 i=0;i<1000000;++i){ints.emplace_back(i);}}
