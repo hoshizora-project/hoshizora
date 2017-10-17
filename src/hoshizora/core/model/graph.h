@@ -190,8 +190,8 @@ namespace hoshizora {
                     degrees[i - lower] = in_offsets(i + 1, block_id) - in_offsets(i, block_id);
                 }
                 degrees[size - 1] = (in_boundaries[num_threads] != upper // not last block
-                                     ? in_offsets(upper, numa_id + 1)
-                                     : in_offsets(upper, numa_id)) // cap is in curr block
+                                     ? in_offsets(upper, block_id + 1)
+                                     : in_offsets(upper, block_id)) // cap is in curr block
                                     - in_offsets(upper - 1, block_id);
 
                 in_degrees.add(degrees, size);
