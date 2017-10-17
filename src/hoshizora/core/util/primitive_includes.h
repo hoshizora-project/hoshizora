@@ -138,7 +138,12 @@ namespace hoshizora {
                 false;
 #endif
         static const u32 num_threads = std::thread::hardware_concurrency();
-        static const u32 num_numa_nodes = 2;
+        static const u32 num_numa_nodes =
+#ifdef SUPPORT_NUMA
+                numa_num_configured_nodes();
+#else
+                1;
+#endif
         static const std::vector<u32> numa_boundaries = {0, 2, 4};
     }
 
