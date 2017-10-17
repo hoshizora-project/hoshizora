@@ -15,8 +15,8 @@ namespace hoshizora {
         using _Graph = Graph<u32, empty_t, empty_t, f32, f32>;
         init();
         const u32 num_iters = argc > 2 ? (u32) std::strtol(argv[2], nullptr, 10) : 1000;
-        debug::logger->info("#numa nodes: {}", loop::num_threads);
-        debug::logger->info("#threads: {}", loop::num_numa_nodes);
+        debug::logger->info("#numa nodes: {}", loop::num_numa_nodes);
+        debug::logger->info("#threads: {}", loop::num_threads);
         debug::logger->info("#iters: {}", num_iters);
         debug::point("started");
         auto edge_list = IO::fromFile0(argv[1]);

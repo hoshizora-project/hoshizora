@@ -137,7 +137,7 @@ namespace hoshizora {
 #else
                 false;
 #endif
-        static const u32 num_threads = std::thread::hardware_concurrency();
+        static const u32 num_threads = std::thread::hardware_concurrency() / 2; // TODO: kill HT
         static const u32 num_numa_nodes =
 #ifdef SUPPORT_NUMA
                 numa_num_configured_nodes();
