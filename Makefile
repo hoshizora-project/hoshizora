@@ -23,6 +23,11 @@ release:
 .PHONY: all
 all: release debug
 
+.PHONY: format
+format:
+	clang-format -i -style=file src/hoshizora/**/*.h
+	clang-format -i -style=file src/hoshizora/main.cpp
+
 .PHONY: clean-debug
 clean-debug:
 	rm -rf ${DEBUG_BUILD_DIR}

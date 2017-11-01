@@ -8,8 +8,7 @@
 
 #include "external/FastPFor/headers/codecfactory.h"
 
-namespace hoshizora {
-namespace compress {
+namespace hoshizora::compress {
 /*
  * external
  */
@@ -404,6 +403,5 @@ template <typename T, size_t N>
 using aligned_vector = vector<T, aligned_allocator<T, 32>>; // TODO
 
 template <typename T> using a32_vector = aligned_vector<T, 32>;
-} // namespace compress
-} // namespace hoshizora
+} // namespace hoshizora::compress
 #endif // COMPRESS_COMMON
