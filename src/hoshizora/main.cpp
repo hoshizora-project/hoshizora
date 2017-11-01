@@ -35,19 +35,19 @@ namespace hoshizora {
         loop::quit();
 
 
-        a32_vector<u32> ints;
+        compress::a32_vector<u32> ints;
         ints.reserve(3000000);
-        a32_vector<u32> offsets = {0,1000000,2000000,3000000};
+        compress::a32_vector<u32> offsets = {0,1000000,2000000,3000000};
         for(u32 j=0;j<3;++j){for(u32 i=0;i<1000000;++i){ints.emplace_back(i);}}
 
-        a32_vector<u8> compressed(6000000);
+        compress::a32_vector<u8> compressed(6000000);
         debug::point("encstart");
-        encode(ints.data(),offsets.data(),3,compressed.data());
+        compress::multiple_encode(ints.data(),offsets.data(),3,compressed.data());
         debug::point("encend");
-        a32_vector<u32> decompressed(3000000);
-        a32_vector<u32> decompressed_offsets(8);
+        compress::a32_vector<u32> decompressed(3000000);
+        compress::a32_vector<u32> decompressed_offsets(8);
         debug::point("decstart");
-        decode(compressed.data(),3,decompressed.data(),decompressed_offsets.data());
+        compress::multiple_decode(compressed.data(),3,decompressed.data(),decompressed_offsets.data());
         debug::point("decend");
         debug::print("encstart", "encend");
         debug::print("decstart", "decend");
