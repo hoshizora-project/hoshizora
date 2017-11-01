@@ -4,12 +4,10 @@
 #include "hoshizora/core/util/includes.h"
 
 namespace hoshizora {
-    template<class Kernel>
-    class Dispatcher {
-        //template<class Result>
-        virtual string run() = 0;
-    };
-}
+template <class Kernel> class Dispatcher {
+  // template<class Result>
+  virtual string run() = 0;
+};
+} // namespace hoshizora
 
-
-#endif //HOSHIZORA_DISPATCHER_H
+#endif // HOSHIZORA_DISPATCHER_H
