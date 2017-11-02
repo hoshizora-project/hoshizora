@@ -340,7 +340,7 @@ public:
   aligned_allocator(const aligned_allocator &) = default;
 
   template <typename U>
-  aligned_allocator(const aligned_allocator<U, Alignment> &) = default;
+  aligned_allocator(const aligned_allocator<U, Alignment> &) {}
 
   ~aligned_allocator() = default;
 

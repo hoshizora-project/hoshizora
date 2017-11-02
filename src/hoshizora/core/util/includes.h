@@ -75,34 +75,6 @@ template <class T> struct DiscreteArray {
     return DiscreteArray<T>(data, range);
   }
 
-  /*
-  const T &operator[](u32 index) const {
-      const auto n = std::distance(begin(range) + 1,
-                                   upper_bound(begin(range), end(range),
-  index)); return data[n][index - range[n]];
-  }*/
-
-  /*
-  T &operator[](u32 index) &{
-      const auto n = std::distance(begin(range) + 1,
-                                   upper_bound(begin(range), end(range),
-  index)); return data[n][index - range[n]];
-  }
-   */
-
-  /*
-  T operator[](u32 index) &&{
-      const auto n = std::distance(begin(range) + 1,
-                                   upper_bound(begin(range), end(range),
-  index)); return data[n][index - range[n]];
-  }*/
-
-  /*
-  T &operator[](u32 index, u32 n) {
-      return data[n][index - range[n]];
-  }
-   */
-
   void add(T *datum, u32 length) {
     data.emplace_back(datum);
     range.emplace_back(range.back() + length);

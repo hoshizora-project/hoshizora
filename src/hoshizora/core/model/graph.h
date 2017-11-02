@@ -41,6 +41,14 @@ struct Graph {
   colle::DiscreteArray<ID> in_offsets;
   colle::DiscreteArray<ID> in_indices;
   colle::DiscreteArray<ID *> in_neighbors;
+
+  //colle::DiscreteArray<u8> out_degrees_c;     // [num_vertices]
+  colle::DiscreteArray<u8> out_offsets_c;     // [num_vertices]
+  colle::DiscreteArray<u8> out_indices_c;     // [num_edges]
+  //colle::DiscreteArray<u8> in_degrees_c;
+  colle::DiscreteArray<u8> in_offsets_c;
+  colle::DiscreteArray<u8> in_indices_c;
+
   ID *forward_indices; // [num_edges]
   ID *out_boundaries;
   ID *in_boundaries;
@@ -120,6 +128,30 @@ struct Graph {
         const auto size = out_boundaries[num_threads] != upper // not last block
                               ? upper - lower
                               : upper - lower + 1; // w/ cap
+        const auto offsets = mem::malloc<u32>(size, numa_id);
+        std::memcpy(offsets, tmp_out_offsets + lower, size * sizeof(u32));
+        out_offsets.add(offsets, size);
+      });
+
+      mem::free(tmp_out_offsets, sizeof(ID) * num_vertices);
+    }
+    out_offsets_is_initialized = true;
+  }
+
+  void set_out_offsets_c() {
+    assert(out_boundaries_is_initialized);
+
+    // FIXME
+    if (num_numa_nodes == 1) {
+      //compress::single_encode(tmp_out_offsets, num_vertices + 1)
+      //out_offsets_c.add(, num_vertices + 1);
+    } else {
+      loop::each_numa_node(out_boundaries, [&](u32 block_id, u32 numa_id,
+                                               u32 lower, u32 upper) {
+        // TODO: hide this branch
+        const auto size = out_boundaries[num_threads] != upper // not last block
+                          ? upper - lower
+                          : upper - lower + 1; // w/ cap
         const auto offsets = mem::malloc<u32>(size, numa_id);
         std::memcpy(offsets, tmp_out_offsets + lower, size * sizeof(u32));
         out_offsets.add(offsets, size);

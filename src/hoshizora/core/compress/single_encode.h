@@ -21,7 +21,7 @@ static u32 single_encode(const u32 *__restrict const in, const u32 size,
       const u32 n_flag_blocks_align32 = ((n_flag_blocks + 31u) / 32u) * 32u;
       out_offset += n_flag_blocks_align32;
 
-      a32_vector<u8> flags(n_blocks + 1u);
+      a32_vector<u8> flags(n_blocks + 1u); // TODO: w/o vector
 
       u8 n_used_bits = 0;
       auto prev = _mm256_setzero_si256();
@@ -119,6 +119,76 @@ static u32 single_encode(const u32 *__restrict const in, const u32 size,
   } else {
     return 0;
   }
+}
+
+static u32 estimate(const u32 *__restrict const in, const u32 size) {
+  if (size == 0) {
+    return 0;
+  }
+
+  u32 in_offset = 0;
+  u32 out_offset = 0;
+  const u32 n_blocks = size / 8u;
+
+  if (n_blocks) {
+    const u32 n_flag_blocks = (n_blocks + 1u) / 2u;
+    const u32 n_flag_blocks_align32 = ((n_flag_blocks + 31u) / 32u) * 32u;
+    out_offset += n_flag_blocks_align32;
+
+    u8 n_used_bits = 0;
+    u32 prev = 0;
+    for (u32 i = 0; i < n_blocks; i++) {
+      const u32 curr = in[in_offset + 7]; // check only last value
+
+      const u8 pack_idx = pack_sizes_helper[_lzcnt_u32(curr - prev)];
+      const u32 pack_size = pack_sizes[pack_idx];
+
+      if (n_used_bits + pack_size > BIT_PER_BOX) {
+        out_offset += YMM_BYTE;
+        n_used_bits = static_cast<u8>(pack_size);
+      } else {
+        n_used_bits += pack_size;
+      }
+
+      prev = curr;
+      in_offset += LENGTH;
+    }
+
+    out_offset += (n_used_bits / BIT_PER_BOX) * YMM_BYTE;
+
+    if (n_used_bits > 0) {
+      out_offset += YMM_BYTE;
+    }
+  }
+
+  const u32 remain = size - in_offset;
+  if (remain > 0) {
+    out_offset++; // flags
+
+    // size < 8
+    if (in_offset == 0) {
+      if (in[0] <= 0xFFFFu) {
+        out_offset += 2u;
+      } else {
+        out_offset += 4u;
+      }
+      in_offset++;
+    }
+
+    for (; in_offset < size; in_offset++) {
+      const u32 diff = in[in_offset] - in[in_offset - 1u];
+      if (diff <= 0xFFFFu) {
+        out_offset += 2u;
+      } else {
+        out_offset += 4u;
+      }
+    }
+
+    out_offset += (8u - remain) * 2u; // skip for overrun in decode
+    // if not exists, decoder reads out of byte array
+  }
+
+  return out_offset;
 }
 } // namespace hoshizora::compress
 #endif // SINGLE_ENCODE_H
