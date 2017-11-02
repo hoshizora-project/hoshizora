@@ -93,9 +93,9 @@ void print(const std::string &start_key, const std::string &end_key) {
                "L2CacheMisses:\t{}\n"
                "L3CacheMisses:\t{}\n"
                "L2CacheHitRatio:\t{}\n"
-               "L3CacheHitRatio:\t{}\n",
+               "L3CacheHitRatio:\t{}\n"
                "InstructionsRetired:\t{}\n"
-               "IPC:\t{}"
+               "IPC:\t{}",
                start_key, end_key,
                std::chrono::duration_cast<std::chrono::milliseconds>(
                    scores[end_key]->time - scores[start_key]->time)

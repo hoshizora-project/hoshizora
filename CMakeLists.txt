@@ -15,7 +15,7 @@ set(SOURCE_FILES src/hoshizora/main.cpp src/hoshizora/core/model/graph.h src/hos
 if (UNIX AND NOT APPLE)
     # linux
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -lnuma -DSUPPORT_NUMA -fopenmp -D_GLIBCXX_PARALLEL")
-    set(SOURCE_FILES "${SOURCE_FILES} src/external/pcm/cpucounters.cpp src/external/pcm/msr.cpp src/external/pcm/pci.cpp src/external/pcm/client_bw.cpp")
+    set(SOURCE_FILES ${SOURCE_FILES} src/external/pcm/cpucounters.cpp src/external/pcm/msr.cpp src/external/pcm/pci.cpp src/external/pcm/client_bw.cpp)
 else ()
     # macos
 endif ()

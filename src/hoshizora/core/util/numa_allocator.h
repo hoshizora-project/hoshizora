@@ -15,9 +15,9 @@ public:
   using propagate_on_container_move_assignment = std::true_type;
   using is_always_equal = std::true_type;
 
-  const u32 node;
+  const uint32_t node;
 
-  explicit NumaAllocator(u32 node = 0) noexcept : node(node){};
+  explicit NumaAllocator(uint32_t node = 0) noexcept : node(node){};
 
   T *allocate(size_t num) {
     auto ret = numa_alloc_onnode(num * sizeof(T), node);
