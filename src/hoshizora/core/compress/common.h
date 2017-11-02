@@ -335,14 +335,14 @@ public:
 
   // Default constructor, copy constructor, rebinding constructor, and
   // destructor. Empty for stateless allocators.
-  aligned_allocator() {}
+  aligned_allocator() = default;
 
-  aligned_allocator(const aligned_allocator &) {}
+  aligned_allocator(const aligned_allocator &) = default;
 
   template <typename U>
-  aligned_allocator(const aligned_allocator<U, Alignment> &) {}
+  aligned_allocator(const aligned_allocator<U, Alignment> &) = default;
 
-  ~aligned_allocator() {}
+  ~aligned_allocator() = default;
 
   // The following will be different for each allocator.
   T *allocate(const std::size_t n) const {
@@ -369,7 +369,7 @@ public:
 
     // Allocators should throw std::bad_alloc in the case of memory allocation
     // failure.
-    if (pv == NULL) {
+    if (pv == nullptr) {
       throw std::bad_alloc();
     }
 

@@ -23,6 +23,22 @@ release:
 .PHONY: all
 all: release debug
 
+.PHONY: scan-debug
+scan-debug:
+	mkdir -p ${DEBUG_BUILD_DIR}
+	cd ${DEBUG_BUILD_DIR} && \
+		export CXX=clang++ && \
+		scan-build cmake -DCMAKE_BUILD_TYPE=Debug .. && \
+		scan-build make
+
+.PHONY: scan-release
+scan-release:
+	mkdir -p ${DEBUG_BUILD_DIR}
+	cd ${DEBUG_BUILD_DIR} && \
+		export CXX=clang++ && \
+		scan-build cmake -DCMAKE_BUILD_TYPE=Release .. && \
+		scan-build make
+
 .PHONY: format
 format:
 	clang-format -i -style=file src/hoshizora/**/*.h
