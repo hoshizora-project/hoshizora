@@ -85,10 +85,17 @@ void print(const std::string &start_key, const std::string &end_key) {
 #ifdef __linux__
   const auto start = scores[start_key]->counter;
   const auto end = scores[end_key]->counter;
-  logger->info("\n[{} -> "
-               "{}]\nElapsedTime[sec]:\t{}\nRead[GB]:\t{}\nWrite[GB]:\t{}"
-               "\nL2CacheMisses:\t{}\nL3CacheMisses:\t{}\nL2CacheHitRatio:\t{}"
-               "\nL3CacheHitRatio:\t{}",
+  logger->info("\n"
+               "[{} -> {}]\n"
+               "ElapsedTime[sec]:\t{}\n"
+               "Read[GB]:\t{}\n"
+               "Write[GB]:\t{}\n"
+               "L2CacheMisses:\t{}\n"
+               "L3CacheMisses:\t{}\n"
+               "L2CacheHitRatio:\t{}\n"
+               "L3CacheHitRatio:\t{}\n",
+               "InstructionsRetired:\t{}\n"
+               "IPC:\t{}"
                start_key, end_key,
                std::chrono::duration_cast<std::chrono::milliseconds>(
                    scores[end_key]->time - scores[start_key]->time)
@@ -96,10 +103,16 @@ void print(const std::string &start_key, const std::string &end_key) {
                    1000.0,
                getBytesReadFromMC(start, end) / 1024.0 / 1024.0 / 1024.0,
                getBytesWrittenToMC(start, end) / 1024.0 / 1024.0 / 1024.0,
-               getL2CacheMisses(start, end), getL3CacheMisses(start, end),
-               getL2CacheHitRatio(start, end), getL3CacheHitRatio(start, end));
+               getL2CacheMisses(start, end),
+               getL3CacheMisses(start, end),
+               getL2CacheHitRatio(start, end),
+               getL3CacheHitRatio(start, end),
+               getInstructionsRetired(start, end),
+               getIPC(start, end));
 #else
-  logger->info("\n[{} -> {}]\nElapsedTime[sec]:\t{}", start_key, end_key,
+  logger->info("\n"
+               "[{} -> {}]\n"
+               "ElapsedTime[sec]:\t{}", start_key, end_key,
                std::chrono::duration_cast<std::chrono::milliseconds>(
                    scores[end_key]->time - scores[start_key]->time)
                        .count() /

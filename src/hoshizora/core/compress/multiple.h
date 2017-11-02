@@ -1,25 +1,74 @@
-#ifndef MULTIPLE_DECODE_H
-#define MULTIPLE_DECODE_H
+#ifndef MULTIPLE_H
+#define MULTIPLE_H
 
-#include <functional>
+#include <chrono>
 #include <immintrin.h>
 #include <iostream>
-#include <stdlib.h>
 #include <string>
-#include <type_traits>
 
 #include "hoshizora/core/compress/common.h"
-#include "hoshizora/core/compress/single_decode.h"
+#include "hoshizora/core/compress/single.h"
 #include "hoshizora/core/util/includes.h"
 
-namespace hoshizora::compress {
+namespace hoshizora::compress::multiple {
+/*
+ * encode
+ */
+// |offsets| should be n_lists + 1
+static u32 encode(const u32 *__restrict const in,
+                           const u32 *__restrict const offsets,
+                           const u32 n_lists, u8 *__restrict const out) {
+  u32 out_consumed = 0;
+  out_consumed += single::encode(offsets, n_lists + 1u, out);
+  out_consumed = ((out_consumed + 31u) / 32u) * 32u;
+
+  u32 i = 0;
+  while (true) {
+    auto head = in + offsets[i];
+    u32 len = offsets[i + 1] - offsets[i];
+    if (len > THRESHOLD) {
+      out_consumed += single::encode(head, len, out + out_consumed);
+      i++;
+    } else {
+      u32 len_acc = 0;
+      while (true) {
+        if ((len >= THRESHOLD && len_acc >= 256u) || i == n_lists) {
+          break;
+        }
+        len = offsets[i + 1] - offsets[i];
+        len_acc += len;
+        i++;
+      }
+      {
+        size_t consumed = len_acc;
+        pfor->encodeArray(
+            head, len_acc,
+            reinterpret_cast<u32 *__restrict const>(out + out_consumed),
+            consumed);
+        out_consumed += consumed * 4u;
+      }
+    }
+
+    if (i == n_lists) {
+      break;
+    } else {
+      out_consumed = ((out_consumed + 31u) / 32u) * 32u;
+    }
+  }
+  return out_consumed;
+}
+
+
+/*
+ * decode
+ */
 alignas(32) u32 buffer[1000000]; // TODO: must be unused
 
-static void multiple_decode(const u8 *__restrict in, const u32 n_lists,
+static void decode(const u8 *__restrict in, const u32 n_lists,
                             u32 *__restrict const out,
                             u32 *__restrict const offsets) {
   u32 in_consumed = 0;
-  in_consumed += single_decode(in, n_lists + 1u, offsets);
+  in_consumed += single::decode(in, n_lists + 1u, offsets);
   in_consumed = ((in_consumed + 31u) / 32u) * 32u;
 
   u32 out_consumed = 0;
@@ -28,7 +77,7 @@ static void multiple_decode(const u8 *__restrict in, const u32 n_lists,
     auto head = in + in_consumed;
     u32 len = offsets[i + 1] - offsets[i];
     if (len > THRESHOLD) {
-      in_consumed += single_decode(head, len, buffer);
+      in_consumed += single::decode(head, len, buffer);
       copy(buffer, buffer + len, out + out_consumed);
       out_consumed += len;
       i++;
@@ -63,11 +112,11 @@ static void multiple_decode(const u8 *__restrict in, const u32 n_lists,
 }
 
 template <typename Func>
-static void multiple_traverse(const u8 *__restrict const in, const u32 n_lists,
+static void traverse(const u8 *__restrict const in, const u32 n_lists,
                               Func f, u32 *__restrict const out = nullptr,
                               u32 *__restrict const offsets = nullptr) {
   u32 in_consumed = 0;
-  in_consumed += single_decode(in, n_lists + 1u, offsets);
+  in_consumed += single::decode(in, n_lists + 1u, offsets);
   in_consumed = ((in_consumed + 31u) / 32u) * 32u;
 
   u32 i = 0;
@@ -75,7 +124,7 @@ static void multiple_traverse(const u8 *__restrict const in, const u32 n_lists,
     auto head = in + in_consumed;
     u32 len = offsets[i + 1] - offsets[i];
     if (len > THRESHOLD) {
-      in_consumed += single_traverse(
+      in_consumed += single::traverse(
           head, len, bind(f, placeholders::_1, i, placeholders::_2));
       i++;
     } else {
@@ -105,5 +154,5 @@ static void multiple_traverse(const u8 *__restrict const in, const u32 n_lists,
     }
   }
 }
-} // namespace hoshizora::compress
-#endif // MULTIPLE_DECODE_H
+} // namespace hoshizora::compress::multiple
+#endif // MULTIPLE_H

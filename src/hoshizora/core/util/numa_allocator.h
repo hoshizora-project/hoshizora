@@ -6,6 +6,8 @@
 #include <numa.h>
 #include <type_traits>
 
+#include "hoshizora/core/util/includes.h"
+
 namespace hoshizora {
 template <class T> class NumaAllocator {
 public:
