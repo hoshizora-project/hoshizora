@@ -476,8 +476,9 @@ static u32 decode(const u8 *__restrict const in, const u32 size,
   }
 }
 
-template <typename Func>
-static u32 traverse(const u8 *__restrict const in, const u32 size, Func f) {
+template <typename Func /*(unpacked_datum, local_idx)*/>
+static u32 foreach (const hoshizora::u8 __restrict *in, const u32 size,
+                    Func f) {
   if (size > 0u) {
     u32 out_offset = 0;
     u32 in_offset = 0;

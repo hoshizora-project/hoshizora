@@ -1,5 +1,5 @@
 DEBUG_BUILD_DIR := 'cmake-build-debug'
-BUILD_DIR := 'cmake-build'
+RELEASE_BUILD_DIR := 'cmake-build-release'
 
 .PHONY: phony
 phony: ;
@@ -10,15 +10,15 @@ debug:
 	cd ${DEBUG_BUILD_DIR} && \
 		export CXX=clang++ && \
 		cmake -DCMAKE_BUILD_TYPE=Debug .. && \
-		make
+		make -j 2
 
 .PHONY: release
 release:
-	mkdir -p ${BUILD_DIR}
-	cd ${BUILD_DIR} && \
+	mkdir -p ${RELEASE_BUILD_DIR}
+	cd ${RELEASE_BUILD_DIR} && \
 		export CXX=clang++ && \
 		cmake -DCMAKE_BUILD_TYPE=Release .. && \
-		make
+		make -j 2
 
 .PHONY: all
 all: release debug

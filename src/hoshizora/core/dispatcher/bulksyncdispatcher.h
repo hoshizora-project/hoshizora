@@ -1,10 +1,13 @@
 #ifndef HOSHIZORA_BULKSYNCDISPATCHER_H
 #define HOSHIZORA_BULKSYNCDISPATCHER_H
 
-#include "hoshizora/core/dispatcher/dispatcher.h"
-#include "hoshizora/core/util/bulksync_thread_pool.h"
 #include <string>
 #include <thread>
+
+#include "hoshizora/core/dispatcher/dispatcher.h"
+#include "hoshizora/core/util/bulksync_thread_pool.h"
+#include "hoshizora/core/util/includes.h"
+#include "hoshizora/core/util/loop.h"
 
 namespace hoshizora {
 template <class Kernel> struct BulkSyncDispatcher : Dispatcher<Kernel> {
@@ -38,28 +41,53 @@ template <class Kernel> struct BulkSyncDispatcher : Dispatcher<Kernel> {
     loop::each_thread(boundaries, [&](u32 block_id, u32 numa_id, u32 thread_id,
                                       u32 lower, u32 upper) {
       tasks->emplace_back([=, &f]() {
-        for (ID dst = lower; dst < upper; ++dst) {
-          f(dst, block_id, numa_id);
+        for (ID i = lower; i < upper; ++i) {
+          f(i, block_id, numa_id);
         }
       });
     });
     thread_pool.push_tasks(tasks);
   }
 
-  template <class Func>
+  template <class Func /*(src, thread_id, numa_id)*/>
   inline void push_tasks(Func f, ID *boundaries, u32 iter) {
     auto tasks = new std::vector<std::function<void()>>();
     loop::each_thread(boundaries, [&](u32 block_id, u32 numa_id, u32 thread_id,
                                       u32 lower, u32 upper) {
       tasks->emplace_back([=, &f]() {
-        for (ID dst = lower; dst < upper; ++dst) {
-          f(dst, block_id, numa_id);
+        for (ID i = lower; i < upper; ++i) {
+          f(i, block_id, numa_id);
         }
         if (thread_id == num_threads - 1) {
           SPDLOG_DEBUG(debug::logger, "fin iter: {}", iter);
         }
       });
     });
+    thread_pool.push_tasks(tasks);
+  }
+
+  template <class Func /*(src, dst, thread_id, numa_id)*/>
+  inline void push_tasks_c(Func f, ID *boundaries, u32 iter,
+                           colle::DiscreteArray<u8> &indices_c) {
+    auto tasks = new std::vector<std::function<void()>>();
+
+    loop::each_thread_c(boundaries, [&](u32 thread_id, u32 numa_id, u32 lower,
+                                        u32 upper, u32 acc_num_srcs) {
+      const auto num_inner_vertices = upper - lower;
+      tasks->emplace_back([=, &f, &indices_c]() {
+        indices_c.foreach (thread_id, num_inner_vertices,
+                           [=](ID dst, ID local_offset, ID _global_idx,
+                               ID local_idx, ID global_offset) {
+                             f(acc_num_srcs + _global_idx, dst, thread_id,
+                               numa_id, local_offset, local_idx, global_offset);
+                           });
+
+        if (thread_id == num_threads - 1) {
+          SPDLOG_DEBUG(debug::logger, "fin iter: {}", iter);
+        }
+      });
+    });
+
     thread_pool.push_tasks(tasks);
   }
 
@@ -90,24 +118,20 @@ template <class Kernel> struct BulkSyncDispatcher : Dispatcher<Kernel> {
       }
 
       // scatter and gather
-      push_tasks(
-          [kernel, prev_graph, curr_graph](ID src, u32 block_id, u32 numa_id) {
-            for (ID i = 0, end = prev_graph->out_degrees(src, block_id);
-                 i < end; ++i) {
-              const auto dst = prev_graph->out_neighbors(src, block_id)[i];
-              const auto index = prev_graph->out_offsets(src, block_id) + i;
-              const auto forwarded_index = prev_graph->forward_indices[index];
-              curr_graph->e_data(forwarded_index /*, block_id*/) =
-                  kernel.gather(
-                      src, dst,
-                      prev_graph->e_data(forwarded_index /*, block_id*/),
-                      kernel.scatter(src, dst,
-                                     prev_graph->v_data(src, block_id),
-                                     *prev_graph),
-                      *prev_graph);
-            }
+      push_tasks_c(
+          [kernel, prev_graph, curr_graph](ID src, ID dst, u32 thread_id,
+                                           u32 numa_id, u32 local_offset,
+                                           u32 local_idx, u32 global_offset) {
+            const auto forwarded_index =
+                prev_graph
+                    ->forward_indices[global_offset + local_offset + local_idx];
+            curr_graph->e_data(forwarded_index /*, block_id*/) = kernel.gather(
+                src, dst, prev_graph->e_data(forwarded_index /*, block_id*/),
+                kernel.scatter(src, dst, prev_graph->v_data(src, thread_id),
+                               *prev_graph),
+                *prev_graph);
           },
-          prev_graph->out_boundaries);
+          prev_graph->out_boundaries, iter, prev_graph->out_indices_c);
 
       // sum and apply
       push_tasks(

@@ -197,6 +197,14 @@ static inline void free(void *ptr, size_t size) {
 }
 } // namespace mem
 
+namespace ex {
+class NotImplementedException : public std::logic_error {
+public:
+  NotImplementedException()
+      : std::logic_error("Function not yet implemented"){};
+};
+} // namespace ex
+
 namespace mock {
 //[[deprecated("Mock")]]
 static inline u32 thread_to_numa(u32 thread_id) {
