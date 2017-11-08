@@ -19,7 +19,7 @@ void main(int argc, char *argv[]) {
   debug::point("started");
   auto edge_list = IO::fromFile0(argv[1]);
   debug::point("loaded");
-  auto graph = _Graph::FromEdgeList(edge_list.data(), edge_list.size());
+  auto graph = _Graph::from_edge_list(edge_list.data(), edge_list.size());
   debug::point("converted");
   BulkSyncDispatcher<PageRankKernel<_Graph>> dispatcher(graph, num_iters);
   const auto result = dispatcher.run();
@@ -41,6 +41,7 @@ void main(int argc, char *argv[]) {
   }
   ints.emplace_back(0);
 
+  /*
   compress::a32_vector<u8> compressed(6000000);
   debug::point("encstart");
   compress::multiple::encode(ints.data(), offsets.data(), 3, compressed.data());
@@ -73,6 +74,7 @@ void main(int argc, char *argv[]) {
   debug::logger->info("ans: {}, est: {}", consumed, consumed0);
   debug::print("enc start", "enc end");
   debug::print("est start", "est end");
+   */
 }
 } // namespace hoshizora
 

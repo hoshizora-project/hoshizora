@@ -6,6 +6,7 @@
 #include <functional>
 #include <mutex>
 #include <queue>
+#include <sstream>
 #include <thread>
 #include <vector>
 #ifdef __linux__
@@ -57,7 +58,12 @@ struct BulkSyncThreadPool {
 
     for (u32 thread_id = 0; thread_id < num_threads; ++thread_id) {
       pool.emplace_back(std::thread([&, thread_id]() {
-        SPDLOG_DEBUG(debug::logger, "created[{}]", thread_id);
+        {
+          std::stringstream system_thread_id;
+          system_thread_id << std::this_thread::get_id();
+          SPDLOG_DEBUG(debug::logger, "created[{}, {}]", thread_id,
+                       system_thread_id.str());
+        }
 
         while (!force_quit_flag &&
                !(quit_flag && task_queues[thread_id]->empty())) {

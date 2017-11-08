@@ -118,7 +118,8 @@ static u32 encode(const u32 *__restrict const in, const u32 size,
       // if not exists, decoder reads out of byte array
     }
 
-    return out_offset;
+    // return out_offset;
+    return (out_offset + 31) / 32 * 32;
   } else {
     return 0;
   }
@@ -191,7 +192,8 @@ static u32 estimate(const u32 *__restrict const in, const u32 size) {
     // if not exists, decoder reads out of byte array
   }
 
-  return out_offset;
+  // return out_offset;
+  return (out_offset + 31) / 32 * 32;
 }
 
 /*

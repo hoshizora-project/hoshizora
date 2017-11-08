@@ -67,7 +67,8 @@ static u32 encode(const u32 *__restrict const in,
       out_consumed = ((out_consumed + 31u) / 32u) * 32u;
     }
   }
-  return out_consumed;
+  // return out_consumed;
+  return (out_consumed + 31) / 32 * 32;
 }
 
 // |offsets| should be n_lists + 1
@@ -103,8 +104,9 @@ static u32 estimate(const u32 *__restrict const in,
       out_consumed = ((out_consumed + 31u) / 32u) * 32u;
     }
   }
-  return out_consumed; // TODO: make out enough space `(out_consumed + 31) / 32
-                       // * 32`
+  return (out_consumed + 31) / 32 *
+         32; // TODO: make out enough space `(out_consumed + 31) / 32
+             // * 32`
 }
 
 /*
@@ -174,10 +176,10 @@ static void foreach (const u8 *__restrict const in, const u32 n_lists, Func f) {
     u32 len = offsets[i + 1] - offsets[i];
     if (len > THRESHOLD) {
 
-      in_consumed +=
-          single::foreach (head, len,
-                           std::bind(f, std::placeholders::_1, offsets[i], i,
-                                     std::placeholders::_2));
+      in_consumed += single::foreach (head, len,
+                                      std::bind(f, std::placeholders::_1,
+                                                offsets[i] - offsets[0], i,
+                                                std::placeholders::_2));
       i++;
     } else {
       u32 acc_start = i;
@@ -192,12 +194,18 @@ static void foreach (const u8 *__restrict const in, const u32 n_lists, Func f) {
       }
       {
         size_t consumed = len_acc;
+        // FIXME
+        // const auto proceeded =
+        //    reinterpret_cast<const u8 *__restrict>(pfor->mapArray(
+        //        reinterpret_cast<const u32 *__restrict const>(head),
+        //        consumed /*dummy*/, buffer, consumed /*as len_acc*/,
+        //        bind(f, std::placeholders::_1, i /*dummy*/, i /*wrong*/,
+        //             std::placeholders::_2) /*temporarily ignored*/));
         const auto proceeded =
-            reinterpret_cast<const u8 *__restrict>(pfor->mapArray(
+            reinterpret_cast<const u8 *__restrict>(pfor->decodeArray(
                 reinterpret_cast<const u32 *__restrict const>(head),
-                consumed /*dummy*/, buffer, consumed /*as len_acc*/,
-                bind(f, std::placeholders::_1, i /*dummy*/, i /*wrong*/,
-                     std::placeholders::_2) /*temporarily ignored*/));
+                consumed /*dummy*/, buffer, consumed /*as len_acc*/));
+
         // FIXME
         for (u32 j = acc_start; j < i; ++j) {
           for (u32 k = offsets[j], start = offsets[j], end = offsets[j + 1];

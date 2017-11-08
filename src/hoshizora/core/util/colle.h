@@ -103,11 +103,11 @@ void DiscreteArray<u8>::foreach (u32 block_id, u32 num_inner_lists,
   compress::multiple::foreach (
       data[block_id], num_inner_lists,
       [=, &f](u32 i, u32 local_offset, u32 _global_idx, u32 local_idx) {
-        f(i, // el of array (dst)
-          local_offset, // offset of each inner array
-          _global_idx, // index of inner array (src)
-         local_idx, // index of el in inner array
-         global_offset); // offset of array, which is useful for outside
+        f(i,              // el of array (dst)
+          local_offset,   // offset of each inner array
+          _global_idx,    // index of inner array (src)
+          local_idx,      // index of el in inner array
+          global_offset); // offset of array, which is useful for outside
       });
 }
 } // namespace hoshizora::colle

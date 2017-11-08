@@ -13,8 +13,10 @@ namespace hoshizora::compress {
 /*
  * external
  */
-const auto pfor = new FastPForLib::CompositeCodec<FastPForLib::SIMDFastPFor<8>,
-                                                  FastPForLib::VariableByte>();
+// TODO: use managed thread_id instead of thread_local
+thread_local const auto pfor =
+    new FastPForLib::CompositeCodec<FastPForLib::SIMDFastPFor<8>,
+                                    FastPForLib::VariableByte>();
 
 constexpr auto THRESHOLD = 64ul; // TODO
 

@@ -134,25 +134,38 @@ template <class Kernel> struct BulkSyncDispatcher : Dispatcher<Kernel> {
           prev_graph->out_boundaries, iter, prev_graph->out_indices_c);
 
       // sum and apply
-      push_tasks(
-          [kernel, curr_graph, prev_graph](ID dst, u32 block_id, u32 numa_id) {
-            curr_graph->v_data(dst /*, block_id*/) =
-                kernel.zero(dst, *prev_graph); // TODO
-            for (ID i = 0, end = prev_graph->in_degrees(dst, block_id); i < end;
-                 ++i) {
-              const auto src = prev_graph->in_neighbors(dst, block_id)[i];
-              const auto index = prev_graph->in_offsets(dst, block_id) + i;
+      push_tasks_c(
+          [kernel, prev_graph, curr_graph](ID dst, ID src, u32 thread_id,
+                                           u32 numa_id, u32 local_offset,
+                                           u32 local_idx, u32 global_offset) {
+            // curr_graph->v_data(dst /*, thread_id*/) =
+            //    kernel.zero(dst, *prev_graph); // TODO
 
-              curr_graph->v_data(dst /*, block_id*/) = kernel.sum(
-                  dst, src, curr_graph->v_data(dst /*, block_id*/),
-                  curr_graph->e_data(index /*, block_id*/), *prev_graph);
-            }
+            // for (ID i = 0, end = prev_graph->in_degrees(dst, thread_id); i <
+            // end;
+            //     ++i) {
+            // const auto src = prev_graph->in_neighbors(dst, thread_id)[i];
+            // const auto index = prev_graph->in_offsets(dst, thread_id) + i;
 
-            curr_graph->v_data(dst /*, block_id*/) = kernel.apply(
-                dst, prev_graph->v_data(dst /*, block_id*/),
-                curr_graph->v_data(dst /*, block_id*/), *prev_graph);
+            // const auto index = global_offset + local_offset + local_idx;
+
+            //
+            // if(index > curr_graph->num_edges){
+            //  debug::logger->info("ex: {}", index);
+            //}
+            //
+            //  curr_graph->v_data(dst /*, thread_id*/) = kernel.sum(
+            //      dst, src, curr_graph->v_data(dst /*, thread_id*/),
+            //      curr_graph->e_data(index /*, thread_id*/), *prev_graph);
+
+            //}
+
+            // FIXME: each_dst
+            // curr_graph->v_data(dst /*, thread_id*/) = kernel.apply(
+            //    dst, prev_graph->v_data(dst /*, thread_id*/),
+            //    curr_graph->v_data(dst /*, thread_id*/), *prev_graph);
           },
-          prev_graph->in_boundaries, iter);
+          prev_graph->in_boundaries, iter, prev_graph->in_indices_c); ///
     }
 
     thread_pool.quit();

@@ -153,7 +153,6 @@ struct Graph {
       const auto length = upper - lower;
       const auto degrees = mem::malloc<ID>(length, numa_id);
       for (u32 i = lower; i < upper; ++i) {
-        auto deg = out_offsets(i + 1, thread_id) - out_offsets(i, thread_id);
         degrees[i - lower] =
             out_offsets(i + 1, thread_id) - out_offsets(i, thread_id);
       }
@@ -216,11 +215,22 @@ struct Graph {
       const auto end = out_offsets(upper, thread_id, 0);
       const auto num_srcs = upper - lower;
       const auto size = compress::multiple::estimate(
-          tmp_out_indices + start, out_offsets.data[thread_id], num_srcs);
+          tmp_out_indices /*+ start*/, out_offsets.data[thread_id], num_srcs);
       const auto indices = mem::malloc<u8>(size, numa_id);
       compress::multiple::encode(tmp_out_indices /* + start*/,
                                  out_offsets.data[thread_id], num_srcs,
                                  indices);
+
+      // const auto _out_indices = mem::malloc<u32>(num_srcs);
+      //
+      // compress::multiple::decode(indices, num_srcs, _out_indices,
+      // out_offsets.data[thread_id]);
+      //
+      // const auto of = out_offsets.range[thread_id];
+      // for(u32 i=0;i<num_srcs;++i){
+      //  assert(tmp_out_indices[i+of] == _out_indices[i]);
+      //}
+
       out_indices_c.add(indices, end - start);
     });
 
@@ -263,7 +273,7 @@ struct Graph {
       const auto end = in_offsets(upper, thread_id, 0);
       const auto num_dsts = upper - lower;
       const auto size = compress::multiple::estimate(
-          tmp_in_indices + start, in_offsets.data[thread_id], num_dsts);
+          tmp_in_indices /*+ start*/, in_offsets.data[thread_id], num_dsts);
       const auto indices = mem::malloc<u8>(size, numa_id);
       compress::multiple::encode(tmp_in_indices /* + start*/,
                                  in_offsets.data[thread_id], num_dsts, indices);
@@ -410,7 +420,7 @@ struct Graph {
 
   // TODO: poor performance
   // *require packed index* (process in preprocessing)
-  static _Graph FromEdgeList(const std::pair<ID, ID> *edge_list, size_t len) {
+  static _Graph from_edge_list(const std::pair<ID, ID> *edge_list, size_t len) {
     assert(len > 0 && edge_list != nullptr);
 
     using VVType = std::pair<ID, ID>;
