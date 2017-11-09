@@ -26,9 +26,9 @@ void main(int argc, char *argv[]) {
   debug::point("done");
   debug::logger->info(result);
 
-  debug::print("started", "loaded");
-  debug::print("loaded", "converted");
-  debug::print("converted", "done");
+  debug::report("started", "loaded");
+  debug::report("loaded", "converted");
+  debug::report("converted", "done");
   loop::quit();
 
   compress::a32_vector<u32> ints;
@@ -73,7 +73,7 @@ void main(int argc, char *argv[]) {
 
   debug::logger->info("ans: {}, est: {}", consumed, consumed0);
   debug::print("enc start", "enc end");
-  debug::print("est start", "est end");
+  debug::report("est start", "est end");
    */
 }
 } // namespace hoshizora

@@ -81,7 +81,7 @@ void point(const std::string &key) {
 #endif
 }
 
-void print(const std::string &start_key, const std::string &end_key) {
+void report(const std::string &start_key, const std::string &end_key) {
 #ifdef __linux__
   const auto start = scores[start_key]->counter;
   const auto end = scores[end_key]->counter;
