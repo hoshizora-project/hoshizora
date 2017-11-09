@@ -176,10 +176,10 @@ static void foreach (const u8 *__restrict const in, const u32 n_lists, Func f) {
     u32 len = offsets[i + 1] - offsets[i];
     if (len > THRESHOLD) {
 
-      in_consumed += single::foreach (head, len,
-                                      std::bind(f, std::placeholders::_1,
-                                                offsets[i] - offsets[0], i,
-                                                std::placeholders::_2));
+      in_consumed +=
+          single::foreach (head, len,
+                           std::bind(f, std::placeholders::_1, offsets[i], i,
+                                     std::placeholders::_2));
       i++;
     } else {
       u32 acc_start = i;
@@ -206,11 +206,12 @@ static void foreach (const u8 *__restrict const in, const u32 n_lists, Func f) {
                 reinterpret_cast<const u32 *__restrict const>(head),
                 consumed /*dummy*/, buffer, consumed /*as len_acc*/));
 
-        // FIXME
-        for (u32 j = acc_start; j < i; ++j) {
-          for (u32 k = offsets[j], start = offsets[j], end = offsets[j + 1];
+        const auto this_offset = offsets[acc_start];
+        for (u32 j = acc_start; j < i; ++j) { // src
+          for (u32 start = offsets[j] - this_offset,
+                   end = offsets[j + 1] - this_offset, k = start;
                k < end; ++k) {
-            f(buffer[k - start], start - offsets[0], j, k - start);
+            f(buffer[k], start, j, k - start);
           }
         }
         in_consumed += proceeded - head;

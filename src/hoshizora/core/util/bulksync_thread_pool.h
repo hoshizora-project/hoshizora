@@ -71,7 +71,10 @@ struct BulkSyncThreadPool {
             continue;
 
           const auto &task = task_queues[thread_id]->front();
+
+          mtx.lock();
           task();
+          mtx.unlock();
 
           mtx.lock();
           SPDLOG_DEBUG(debug::logger, "done[{}] on CPU{}", thread_id,

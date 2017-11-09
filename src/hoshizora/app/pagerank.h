@@ -42,8 +42,6 @@ template <class Graph> struct PageRankKernel : Kernel<Graph> {
   }
 
   std::string result(const Graph &graph) const {
-    //            debug::print(graph.num_vertices);
-
     /*
                 string res = "{\"nodes\":[";
                 for (ID i = 0; i < graph.num_vertices; i += 1000) {

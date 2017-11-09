@@ -77,12 +77,12 @@ template <class T> struct DiscreteArray {
   template <
       class
       Func /*(unpacked_datum, local_offset, global_idx, local_idx, global_offset)*/>
-  void foreach (u32 block_id, u32 dummy, Func f) const {
+  void foreach (u32 thread_id, u32 dummy, Func f) const {
     // this type manages a single array like [0,1,3,5,2,1]
-    for (u32 i = 0, offset = range[block_id],
-             end = range[block_id + 1] - offset;
+    for (u32 i = 0, offset = range[thread_id],
+             end = range[thread_id + 1] - offset;
          i < end; ++i) {
-      f(data[block_id][i], // el of array
+      f(data[thread_id][i], // el of array
         0, // offset of array, always 0, since it contains just a single array
         0, // index of array, always 0, since it contains just a single array
         i, // index of el
@@ -95,13 +95,13 @@ template <>
 template <
     class
     Func /*(unpacked_datum, local_offset, global_idx, local_idx, global_offset)*/>
-void DiscreteArray<u8>::foreach (u32 block_id, u32 num_inner_lists,
+void DiscreteArray<u8>::foreach (u32 thread_id, u32 num_inner_lists,
                                  Func f) const {
   // this type manages multiple array in a single array like [0,4,2,1,3] as
   // [[0,4,2], [1,3]]
-  const auto global_offset = range[block_id];
+  const auto global_offset = range[thread_id];
   compress::multiple::foreach (
-      data[block_id], num_inner_lists,
+      data[thread_id], num_inner_lists,
       [=, &f](u32 i, u32 local_offset, u32 _global_idx, u32 local_idx) {
         f(i,              // el of array (dst)
           local_offset,   // offset of each inner array

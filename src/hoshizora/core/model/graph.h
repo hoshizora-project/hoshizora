@@ -38,15 +38,13 @@ struct Graph {
 
   colle::DiscreteArray<ID> out_degrees;     // [#vertices]
   colle::DiscreteArray<ID> out_offsets;     // [#vertices]
-  colle::DiscreteArray<ID> out_indices;     // [#edges]
   colle::DiscreteArray<ID *> out_neighbors; // [#vertices][degrees[i]]
   colle::DiscreteArray<ID> in_degrees;
   colle::DiscreteArray<ID> in_offsets;
-  colle::DiscreteArray<ID> in_indices;
   colle::DiscreteArray<ID *> in_neighbors;
 
-  colle::DiscreteArray<u8> out_indices_c; // [#edges]
-  colle::DiscreteArray<u8> in_indices_c;  // [#edges]
+  colle::DiscreteArray<u8> out_indices; // [#edges]
+  colle::DiscreteArray<u8> in_indices;  // [#edges]
 
   ID *forward_indices; // [num_edges]
   ID *out_boundaries;
@@ -61,11 +59,9 @@ struct Graph {
   bool out_degrees_is_initialized = false;
   bool out_offsets_is_initialized = false;
   bool out_indices_is_initialized = false;
-  bool out_neighbors_is_initialized = false;
   bool in_degrees_is_initialized = false;
   bool in_offsets_is_initialized = false;
   bool in_indices_is_initialized = false;
-  bool in_neighbors_is_initialized = false;
   bool out_boundaries_is_initialized = false;
   bool in_boundaries_is_initialized = false;
   bool forward_indices_is_initialized = false;
@@ -78,10 +74,6 @@ struct Graph {
         v_data(colle::DiscreteArray<VData>()),
         e_data(colle::DiscreteArray<EData>()) {}
 
-  virtual ~Graph() {
-    // debug::print("dest graph");
-  }
-
   void set_out_boundaries() {
     assert(!out_offsets_is_initialized);
 
@@ -93,7 +85,7 @@ struct Graph {
           std::lower_bound(tmp_out_offsets, tmp_out_offsets + num_vertices,
                            chunk_size * thread_id)));
     }
-    out_boundaries[num_threads] = num_vertices - 1;
+    out_boundaries[num_threads] = num_vertices;
 
     out_boundaries_is_initialized = true;
   }
@@ -109,7 +101,7 @@ struct Graph {
           std::lower_bound(tmp_in_offsets, tmp_in_offsets + num_vertices,
                            chunk_size * thread_id)));
     }
-    in_boundaries[num_threads] = num_vertices - 1;
+    in_boundaries[num_threads] = num_vertices;
 
     in_boundaries_is_initialized = true;
   }
@@ -117,11 +109,20 @@ struct Graph {
   void set_out_offsets() {
     assert(out_boundaries_is_initialized);
 
-    loop::each_thread(out_boundaries, [&](u32 block_id, u32 numa_id,
-                                          u32 thread_id, ID lower, ID upper) {
+    loop::each_thread(out_boundaries, [&](u32 thread_id, u32 numa_id, ID lower,
+                                          ID upper, ID acc_num_srcs) {
       const auto length = upper - lower + 1; // w/ cap
       const auto offsets = mem::malloc<ID>(length, numa_id);
       std::memcpy(offsets, tmp_out_offsets + lower, length * sizeof(ID));
+
+      // TODO: optimize it
+      if (thread_id > 0) {
+        const auto offset = offsets[0];
+        for (ID i = 0; i < length; ++i) {
+          offsets[i] -= offset;
+        }
+      }
+
       out_offsets.add(offsets, length - 1); // real size w/o cap
     });
 
@@ -132,11 +133,20 @@ struct Graph {
   void set_in_offsets() {
     assert(in_boundaries_is_initialized);
 
-    loop::each_thread(in_boundaries, [&](u32 block_id, u32 numa_id,
-                                         u32 thread_id, ID lower, ID upper) {
+    loop::each_thread(in_boundaries, [&](u32 thread_id, u32 numa_id, ID lower,
+                                         ID upper, ID acc_num_srcs) {
       const auto length = upper - lower + 1; // w/ cap
       const auto offsets = mem::malloc<ID>(length, numa_id);
       std::memcpy(offsets, tmp_in_offsets + lower, length * sizeof(ID));
+
+      // TODO: optimize it
+      if (thread_id > 0) {
+        const auto offset = offsets[0];
+        for (ID i = 0; i < length; ++i) {
+          offsets[i] -= offset;
+        }
+      }
+
       in_offsets.add(offsets, length - 1); // real size w/o cap
     });
 
@@ -148,8 +158,8 @@ struct Graph {
     assert(out_boundaries_is_initialized);
     assert(out_offsets_is_initialized);
 
-    loop::each_thread(out_boundaries, [&](u32 block_id, u32 numa_id,
-                                          u32 thread_id, u32 lower, u32 upper) {
+    loop::each_thread(out_boundaries, [&](u32 thread_id, u32 numa_id, u32 lower,
+                                          ID upper, ID acc_num_srcs) {
       const auto length = upper - lower;
       const auto degrees = mem::malloc<ID>(length, numa_id);
       for (u32 i = lower; i < upper; ++i) {
@@ -166,8 +176,8 @@ struct Graph {
     assert(in_boundaries_is_initialized);
     assert(in_offsets_is_initialized);
 
-    loop::each_thread(in_boundaries, [&](u32 block_id, u32 numa_id,
-                                         u32 thread_id, u32 lower, u32 upper) {
+    loop::each_thread(in_boundaries, [&](u32 thread_id, u32 numa_id, u32 lower,
+                                         ID upper, ID acc_num_srcs) {
       const auto length = upper - lower;
       const auto degrees = mem::malloc<ID>(length, numa_id);
       for (u32 i = lower; i < upper; ++i) {
@@ -180,170 +190,66 @@ struct Graph {
     in_degrees_is_initialized = true;
   }
 
-  /*
   void set_out_indices() {
     assert(out_boundaries_is_initialized);
     assert(out_offsets_is_initialized);
 
-    // FIXME
-    if (num_numa_nodes == 1) {
-      out_indices.add(tmp_out_indices, num_edges);
-    } else {
-      loop::each_numa_node(
-          out_boundaries, out_offsets,
-          [&](u32 block_id, u32 numa_id, u32 start, u32 end) {
-            const auto size = end - start;
-            const auto indices = mem::malloc<u32>(size, numa_id);
-            std::memcpy(indices, tmp_out_indices + start, size * sizeof(u32));
-            out_indices.add(indices, size);
-          });
+    const auto *_tmp_out_indices = tmp_out_indices;
 
-      mem::free(tmp_out_indices, num_edges);
-    }
-
-    out_indices_is_initialized = true;
-  }
-   */
-
-  void set_out_indices_c() {
-    assert(out_boundaries_is_initialized);
-    assert(out_offsets_is_initialized);
-
-    loop::each_thread(out_boundaries, [&](u32 block_id, u32 numa_id,
-                                          u32 thread_id, ID lower, ID upper) {
+    loop::each_thread(out_boundaries, [&](u32 thread_id, u32 numa_id, ID lower,
+                                          ID upper, ID acc_num_srcs) {
       const auto start = out_offsets(lower, thread_id);
       const auto end = out_offsets(upper, thread_id, 0);
       const auto num_srcs = upper - lower;
       const auto size = compress::multiple::estimate(
-          tmp_out_indices /*+ start*/, out_offsets.data[thread_id], num_srcs);
+          _tmp_out_indices, out_offsets.data[thread_id], num_srcs);
       const auto indices = mem::malloc<u8>(size, numa_id);
-      compress::multiple::encode(tmp_out_indices /* + start*/,
-                                 out_offsets.data[thread_id], num_srcs,
-                                 indices);
+      compress::multiple::encode(_tmp_out_indices, out_offsets.data[thread_id],
+                                 num_srcs, indices);
 
-      // const auto _out_indices = mem::malloc<u32>(num_srcs);
-      //
-      // compress::multiple::decode(indices, num_srcs, _out_indices,
-      // out_offsets.data[thread_id]);
-      //
-      // const auto of = out_offsets.range[thread_id];
-      // for(u32 i=0;i<num_srcs;++i){
-      //  assert(tmp_out_indices[i+of] == _out_indices[i]);
-      //}
-
-      out_indices_c.add(indices, end - start);
+      out_indices.add(indices, end - start);
+      _tmp_out_indices += end;
     });
 
     mem::free(tmp_out_indices, num_edges);
     out_indices_is_initialized = true;
   }
 
-  /*
   void set_in_indices() {
     assert(in_boundaries_is_initialized);
     assert(in_offsets_is_initialized);
 
-    // FIXME
-    if (num_numa_nodes == 1) {
-      in_indices.add(tmp_in_indices, num_edges);
-    } else {
-      loop::each_numa_node(
-          in_boundaries, in_offsets,
-          [&](u32 block_id, u32 numa_id, u32 start, u32 end) {
-            const auto size = end - start;
-            const auto indices = mem::malloc<u32>(size, numa_id);
-            std::memcpy(indices, tmp_in_indices + start, size * sizeof(u32));
-            in_indices.add(indices, size);
-          });
-
-      mem::free(tmp_in_indices, sizeof(ID) * num_edges);
-    }
-
-    in_indices_is_initialized = true;
-  }
-   */
-
-  void set_in_indices_c() {
-    assert(in_boundaries_is_initialized);
-    assert(in_offsets_is_initialized);
-
-    loop::each_thread(in_boundaries, [&](u32 block_id, u32 numa_id,
-                                         u32 thread_id, ID lower, ID upper) {
+    const auto *_tmp_in_indices = tmp_in_indices;
+    loop::each_thread(in_boundaries, [&](u32 thread_id, u32 numa_id, ID lower,
+                                         ID upper, ID acc_num_srcs) {
       const auto start = in_offsets(lower, thread_id);
       const auto end = in_offsets(upper, thread_id, 0);
       const auto num_dsts = upper - lower;
       const auto size = compress::multiple::estimate(
-          tmp_in_indices /*+ start*/, in_offsets.data[thread_id], num_dsts);
+          _tmp_in_indices, in_offsets.data[thread_id], num_dsts);
       const auto indices = mem::malloc<u8>(size, numa_id);
-      compress::multiple::encode(tmp_in_indices /* + start*/,
-                                 in_offsets.data[thread_id], num_dsts, indices);
-      in_indices_c.add(indices, end - start);
+      compress::multiple::encode(_tmp_in_indices, in_offsets.data[thread_id],
+                                 num_dsts, indices);
+      in_indices.add(indices, end - start);
+      _tmp_in_indices += end;
     });
 
     mem::free(tmp_in_indices, num_edges);
     in_indices_is_initialized = true;
   }
 
-  /*
-  void set_out_neighbor() {
-    assert(out_indices_is_initialized);
-    assert(out_offsets_is_initialized);
-
-    //loop::each_numa_node(
-    //    out_boundaries, [&](u32 block_id, u32 numa_id, u32 lower, u32 upper) {
-    //      auto out_neighbor = colle::make_numa_vector<ID *>(numa_id);
-    //      out_neighbor->reserve(upper - lower);
-    //      for (ID i = lower; i < upper; ++i) {
-    //        out_neighbor->emplace_back(
-    //            &out_indices(out_offsets(i, block_id), block_id));
-    //      }
-    //      out_neighbors.add(std::move(*out_neighbor));
-    //    });
-
-    loop::each_thread(out_boundaries, [&](u32 block_id, u32 numa_id,u32
-  thread_id, ID lower,ID upper){
-      //const auto out_neighbor = colle::make_numa_vector<ID *>(numa_id);
-      const auto out_neighbor=mem::malloc<ID *>(upper-lower,numa_id);
-      //out_neighbor->reserve(upper -lower);
-      for(ID i=lower;i<upper;++i){
-        out_neighbor[i-lower]=&out_indices(out_offsets)
-      }
-    });
-
-        out_neighbors_is_initialized = true;
-  }
-
-  void set_in_neighbors() {
-    assert(in_indices_is_initialized);
-    assert(in_offsets_is_initialized);
-
-    loop::each_numa_node(
-        in_boundaries, [&](u32 block_id, u32 numa_id, u32 lower, u32 upper) {
-          auto in_neighbor = colle::make_numa_vector<ID *>(numa_id);
-          in_neighbor->reserve(upper - lower);
-          for (ID i = lower; i < upper; ++i) {
-            in_neighbor->emplace_back(
-                &in_indices(in_offsets(i, block_id), block_id));
-          }
-          in_neighbors.add(std::move(*in_neighbor));
-        });
-
-    in_neighbors_is_initialized = true;
-  }
-*/
-
   void set_forward_indices() {
     assert(out_boundaries_is_initialized);
     assert(out_offsets_is_initialized);
     assert(out_degrees_is_initialized);
-    // assert(out_neighbors_is_initialized);
+    assert(out_indices_is_initialized);
     assert(in_offsets_is_initialized);
 
     forward_indices = mem::malloc<ID>(num_edges); // TODO: should be numa-local
 
     auto counts = std::vector<ID>(num_vertices, 0);
     loop::each_index(
-        out_boundaries, out_indices_c, out_offsets,
+        out_boundaries, out_indices, out_offsets,
         [&](u32 thread_id, u32 numa_id, ID dst, ID local_offset, ID global_idx,
             ID local_idx, ID global_offset) {
           forward_indices[global_offset + local_offset + local_idx] =
@@ -365,20 +271,12 @@ struct Graph {
     // TODO: consider both out and in boundaries (?)
     // If readonly, it should be allowed that duplicate vertex data
     // And should be allocated on each numa node
-    // loop::each_numa_node(out_boundaries,
-    //                     [&](u32 block_id, u32 numa_id, u32 lower, u32 upper)
-    //                     {
-    //                       const auto size = upper - lower;
-    //                       v_data.add(mem::malloc<VData>(size, numa_id),
-    //                       size);
-    //                     });
-    loop::each_thread_c(
-        out_boundaries,
-        [&](u32 thread_id, u32 numa_id, ID lower, ID upper, ID acc_num_srcs) {
-          const auto num_inner_vertices = upper - lower;
-          v_data.add(mem::malloc<VData>(num_inner_vertices, thread_id),
-                     num_inner_vertices);
-        });
+    loop::each_thread(out_boundaries, [&](u32 thread_id, u32 numa_id, ID lower,
+                                          ID upper, ID acc_num_srcs) {
+      const auto num_inner_vertices = upper - lower;
+      v_data.add(mem::malloc<VData>(num_inner_vertices, thread_id),
+                 num_inner_vertices);
+    });
   }
 
   void set_e_data(bool allow_overwirte = false) {
@@ -394,22 +292,15 @@ struct Graph {
     // TODO: consider both out and in boundaries (?)
     // If readonly, it should be allowed that duplicate edge data
     // And should be allocated on each numa node
-    // loop::each_numa_node(out_boundaries, out_offsets,
-    //                     [&](u32 block_id, u32 numa_id, u32 start, u32 end) {
-    //                       const auto size = end - start;
-    //                       e_data.add(mem::malloc<EData>(size, numa_id),
-    //                       size);
-    //                     });
-    loop::each_thread_c(
-        out_boundaries,
-        [&](u32 thread_id, u32 numa_id, ID lower, ID upper, ID acc_num_srcs) {
-          const auto start = out_offsets(lower, thread_id);
-          const auto end = out_offsets(upper, thread_id);
-          const auto num_inner_edges = end - start;
-          e_data.add(mem::malloc<VData>(num_inner_edges,
-                                        thread_id /*should be numa_id*/),
-                     num_inner_edges);
-        });
+    loop::each_thread(out_boundaries, [&](u32 thread_id, u32 numa_id, ID lower,
+                                          ID upper, ID acc_num_srcs) {
+      const auto start = out_offsets(lower, thread_id);
+      const auto end = out_offsets(upper, thread_id);
+      const auto num_inner_edges = end - start;
+      e_data.add(
+          mem::malloc<VData>(num_inner_edges, thread_id /*should be numa_id*/),
+          num_inner_edges);
+    });
   }
 
   static void Next(_Graph &prev, _Graph &curr) {
@@ -500,18 +391,24 @@ struct Graph {
     g.set_out_boundaries();
     g.set_out_offsets();
     g.set_out_degrees();
-    // g.set_out_indices();
-    g.set_out_indices_c(); ///
-    // g.set_out_neighbor();
+    g.set_out_indices();
     g.set_in_boundaries();
     g.set_in_offsets();
     g.set_in_degrees();
-    // g.set_in_indices();
-    g.set_in_indices_c(); ///
-    // g.set_in_neighbors();
+    g.set_in_indices();
     g.set_forward_indices();
     g.set_v_data();
     g.set_e_data();
+
+    assert(g.out_degrees_is_initialized);
+    assert(g.out_offsets_is_initialized);
+    assert(g.out_indices_is_initialized);
+    assert(g.in_degrees_is_initialized);
+    assert(g.in_offsets_is_initialized);
+    assert(g.in_indices_is_initialized);
+    assert(g.out_boundaries_is_initialized);
+    assert(g.in_boundaries_is_initialized);
+    assert(g.forward_indices_is_initialized);
 
     return g;
   }
