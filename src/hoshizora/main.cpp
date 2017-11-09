@@ -1,6 +1,6 @@
 #include "hoshizora/app/pagerank.h"
 #include "hoshizora/core/compress/multiple.h"
-#include "hoshizora/core/dispatcher/bulksyncdispatcher.h"
+#include "hoshizora/core/executor/bulksync_gas_executor.h"
 #include "hoshizora/core/io/io.h"
 #include "hoshizora/core/model/graph.h"
 #include "hoshizora/core/util/includes.h"
@@ -21,8 +21,8 @@ void main(int argc, char *argv[]) {
   debug::point("loaded");
   auto graph = _Graph::from_edge_list(edge_list.data(), edge_list.size());
   debug::point("converted");
-  BulkSyncDispatcher<PageRankKernel<_Graph>> dispatcher(graph, num_iters);
-  const auto result = dispatcher.run();
+  BulkSyncGASExecutor<PageRankKernel<_Graph>> executor(graph, num_iters);
+  const auto result = executor.run();
   debug::point("done");
   debug::logger->info(result);
 

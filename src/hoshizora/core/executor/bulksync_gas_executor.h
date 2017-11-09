@@ -1,16 +1,16 @@
-#ifndef HOSHIZORA_BULKSYNCDISPATCHER_H
-#define HOSHIZORA_BULKSYNCDISPATCHER_H
+#ifndef HOSHIZORA_BULKSYNC_GAS_EXECUTOR_H
+#define HOSHIZORA_BULKSYNC_GAS_EXECUTOR_H
 
 #include <string>
 #include <thread>
 
-#include "hoshizora/core/dispatcher/dispatcher.h"
+#include "hoshizora/core/executor/executor.h"
 #include "hoshizora/core/util/bulksync_thread_pool.h"
 #include "hoshizora/core/util/includes.h"
 #include "hoshizora/core/util/loop.h"
 
 namespace hoshizora {
-template <class Kernel> struct BulkSyncDispatcher : Dispatcher<Kernel> {
+template <class Kernel> struct BulkSyncGASExecutor : Executor<Kernel> {
   using Graph = typename Kernel::_Graph;
   using ID = typename Kernel::_Graph::_ID;
 
@@ -28,7 +28,7 @@ template <class Kernel> struct BulkSyncDispatcher : Dispatcher<Kernel> {
 
   const u32 num_iters;
 
-  explicit BulkSyncDispatcher(Graph &graph, u32 num_iters)
+  explicit BulkSyncGASExecutor(Graph &graph, u32 num_iters)
       : prev_graph(&graph), curr_graph(&graph),
         num_vertices(graph.num_vertices), num_edges(graph.num_edges),
         thread_pool(num_threads), num_iters(num_iters) {
@@ -150,4 +150,4 @@ template <class Kernel> struct BulkSyncDispatcher : Dispatcher<Kernel> {
 };
 } // namespace hoshizora
 
-#endif // HOSHIZORA_BULKSYNCDISPATCHER_H
+#endif // HOSHIZORA_BULKSYNC_GAS_EXECUTOR_H
