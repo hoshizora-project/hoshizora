@@ -479,7 +479,7 @@ static u32 decode(const u8 *__restrict const in, const u32 length,
 }
 
 template <typename Func /*(unpacked_datum, local_idx)*/>
-static u32 foreach (const hoshizora::u8 __restrict *in, const u32 length,
+static u32 foreach (const hoshizora::u8 *__restrict in, const u32 length,
                     Func f) {
   if (length == 0) {
     return 0;
