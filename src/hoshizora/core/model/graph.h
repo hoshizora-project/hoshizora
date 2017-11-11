@@ -195,15 +195,14 @@ struct Graph {
     assert(out_offsets_is_initialized);
 
     const auto *_tmp_out_indices = tmp_out_indices;
-
     loop::each_thread(out_boundaries, [&](u32 thread_id, u32 numa_id, ID lower,
                                           ID upper, ID acc_num_srcs) {
       const auto start = out_offsets(lower, thread_id);
       const auto end = out_offsets(upper, thread_id, 0);
       const auto num_srcs = upper - lower;
-      const auto size = compress::multiple::estimate(
+      const auto estimated_size = compress::multiple::estimate(
           _tmp_out_indices, out_offsets.data[thread_id], num_srcs);
-      const auto indices = mem::malloc<u8>(size, numa_id);
+      const auto indices = mem::malloc<u8>(estimated_size, numa_id);
       compress::multiple::encode(_tmp_out_indices, out_offsets.data[thread_id],
                                  num_srcs, indices);
 
@@ -225,11 +224,12 @@ struct Graph {
       const auto start = in_offsets(lower, thread_id);
       const auto end = in_offsets(upper, thread_id, 0);
       const auto num_dsts = upper - lower;
-      const auto size = compress::multiple::estimate(
+      const auto estimated_size = compress::multiple::estimate(
           _tmp_in_indices, in_offsets.data[thread_id], num_dsts);
-      const auto indices = mem::malloc<u8>(size, numa_id);
+      const auto indices = mem::calloc<u8>(estimated_size, numa_id);
       compress::multiple::encode(_tmp_in_indices, in_offsets.data[thread_id],
                                  num_dsts, indices);
+
       in_indices.add(indices, end - start);
       _tmp_in_indices += end;
     });

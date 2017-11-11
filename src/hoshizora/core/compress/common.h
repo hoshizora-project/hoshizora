@@ -33,8 +33,8 @@ constexpr auto BIT_PER_BOX = YMM_BIT / LENGTH;
 /*
  * synonym
  */
-using __m256ipc = __m256i *__restrict const;
-using __m256icpc = const __m256i *__restrict const;
+using __m256ipc = __m256i *const;
+using __m256icpc = const __m256i *const;
 
 /*
  * shift and mask
@@ -94,7 +94,7 @@ alignas(32) constexpr u32 mask8l[9][8] = {
      shift8l(0), shift8l(0)}};
 
 // TODO: not know why but use of constexpr here makes slow
-alignas(32) const u32 mask32r[33][8] = {
+alignas(32) constexpr u32 mask32r[33][8] = {
     {shift32r(32), shift32r(32), shift32r(32), shift32r(32), shift32r(32),
      shift32r(32), shift32r(32), shift32r(32)},
     {shift32r(31), shift32r(31), shift32r(31), shift32r(31), shift32r(31),
@@ -163,7 +163,7 @@ alignas(32) const u32 mask32r[33][8] = {
      shift32r(0), shift32r(0), shift32r(0)}};
 
 /*
-alignas(32) const u32 mask32l[33][8] = {
+alignas(32) constexpr u32 mask32l[33][8] = {
   { shift32l(32), shift32l(32), shift32l(32), shift32l(32), shift32l(32),
 shift32l(32), shift32l(32), shift32l(32) }, { shift32l(31), shift32l(31),
 shift32l(31), shift32l(31), shift32l(31), shift32l(31), shift32l(31),

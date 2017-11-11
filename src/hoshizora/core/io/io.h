@@ -39,6 +39,7 @@ struct IO {
     auto first = 0ul, second = 0ul;
 
     vector<pair<u32, u32>> edge_list;
+    edge_list.reserve(5105039); // TODO
 
     for (auto &datum : data) {
       if (isSpace(datum)) {

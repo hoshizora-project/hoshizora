@@ -136,9 +136,9 @@ template <class Kernel> struct BulkSyncGASExecutor : Executor<Kernel> {
             }
 
             // FIXME: each_dst
-            // curr_graph->v_data(dst /*, thread_id*/) = kernel.apply(
-            //    dst, prev_graph->v_data(dst /*, thread_id*/),
-            //    curr_graph->v_data(dst /*, thread_id*/), *prev_graph);
+            curr_graph->v_data(dst /*, thread_id*/) = kernel.apply(
+                dst, prev_graph->v_data(dst /*, thread_id*/),
+                curr_graph->v_data(dst /*, thread_id*/), *prev_graph);
           },
           prev_graph->in_boundaries, iter, prev_graph->in_indices);
     }

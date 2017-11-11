@@ -16,11 +16,10 @@ namespace hoshizora::compress::multiple {
  */
 // |offsets| should be n_lists + 1
 static u32 encode(const u32 *__restrict const in,
-                  const u32 *__restrict const offsets, const u32 n_lists,
-                  u8 *__restrict const out) {
-  u32 out_consumed = 0;
-  out_consumed += single::encode(offsets, n_lists + 1u, out);
-  out_consumed = ((out_consumed + 31u) / 32u) * 32u;
+                  const u32 *__restrict const offsets,
+                  const u32 num_inner_lists, u8 *__restrict const out) {
+  u32 out_consumed = single::encode(offsets, num_inner_lists + 1u, out);
+
   u32 i = 0;
   while (true) {
     auto head = in + offsets[i];
@@ -37,7 +36,7 @@ static u32 encode(const u32 *__restrict const in,
     } else {
       u32 len_acc = 0;
       while (true) {
-        if ((len >= THRESHOLD && len_acc >= 256u) || i == n_lists) {
+        if ((len >= THRESHOLD && len_acc >= 256u) || i == num_inner_lists) {
           break;
         }
         len = offsets[i + 1] - offsets[i];
@@ -53,30 +52,27 @@ static u32 encode(const u32 *__restrict const in,
           const auto tmp = new a32_vector<u32>(head, head + len_acc);
           _head = tmp->data();
         }
-        pfor->encodeArray(
-            _head, len_acc,
-            reinterpret_cast<u32 *__restrict const>(out + out_consumed),
-            consumed);
+        pfor->encodeArray(_head, len_acc,
+                          reinterpret_cast<u32 *const>(out + out_consumed),
+                          consumed);
         out_consumed += consumed * 4u;
       }
     }
 
-    if (i == n_lists) {
+    out_consumed = ((out_consumed + 31u) / 32u) * 32u;
+    if (i == num_inner_lists) {
       break;
-    } else {
-      out_consumed = ((out_consumed + 31u) / 32u) * 32u;
     }
   }
-  // return out_consumed;
-  return (out_consumed + 31) / 32 * 32;
+
+  return out_consumed;
 }
 
 // |offsets| should be n_lists + 1
 static u32 estimate(const u32 *__restrict const in,
-                    const u32 *__restrict const offsets, const u32 n_lists) {
-  u32 out_consumed = 0;
-  out_consumed += single::estimate(offsets, n_lists + 1u);
-  out_consumed = ((out_consumed + 31u) / 32u) * 32u;
+                    const u32 *__restrict const offsets,
+                    const u32 num_inner_lists) {
+  u32 out_consumed = single::estimate(offsets, num_inner_lists + 1u);
 
   u32 i = 0;
   while (true) {
@@ -88,7 +84,7 @@ static u32 estimate(const u32 *__restrict const in,
     } else {
       u32 len_acc = 0;
       while (true) {
-        if ((len >= THRESHOLD && len_acc >= 256u) || i == n_lists) {
+        if ((len >= THRESHOLD && len_acc >= 256u) || i == num_inner_lists) {
           break;
         }
         len = offsets[i + 1] - offsets[i];
@@ -98,29 +94,25 @@ static u32 estimate(const u32 *__restrict const in,
       { out_consumed += pfor->estimate(head, len_acc) * 4u; }
     }
 
-    if (i == n_lists) {
+    out_consumed = ((out_consumed + 31u) / 32u) * 32u;
+    if (i == num_inner_lists) {
       break;
-    } else {
-      out_consumed = ((out_consumed + 31u) / 32u) * 32u;
     }
   }
-  return (out_consumed + 31) / 32 *
-         32; // TODO: make out enough space `(out_consumed + 31) / 32
-             // * 32`
+
+  return out_consumed;
 }
 
 /*
  * decode
  */
-static void decode(const u8 *__restrict in, const u32 n_lists,
+static void decode(const u8 *const __restrict in, const u32 num_inner_lists,
                    u32 *__restrict const out, u32 *__restrict const offsets) {
   alignas(32) u32 buffer[100000]; // TODO: must be unused
-
-  u32 in_consumed = 0;
-  in_consumed += single::decode(in, n_lists + 1u, offsets);
+  u32 in_consumed = single::decode(in, num_inner_lists + 1u, offsets);
   in_consumed = ((in_consumed + 31u) / 32u) * 32u;
-
   u32 out_consumed = 0;
+
   u32 i = 0;
   while (true) {
     auto head = in + in_consumed;
@@ -133,7 +125,7 @@ static void decode(const u8 *__restrict in, const u32 n_lists,
     } else {
       u32 len_acc = 0;
       while (true) {
-        if ((len >= THRESHOLD && len_acc >= 256u) || i == n_lists) {
+        if ((len >= THRESHOLD && len_acc >= 256u) || i == num_inner_lists) {
           break;
         }
         len = offsets[i + 1] - offsets[i];
@@ -142,32 +134,29 @@ static void decode(const u8 *__restrict in, const u32 n_lists,
       }
       {
         size_t consumed = len_acc;
-        const auto proceeded =
-            reinterpret_cast<const u8 *__restrict>(pfor->decodeArray(
-                reinterpret_cast<const u32 *__restrict const>(head),
-                consumed /*dummy*/, buffer, consumed /*as len_acc*/));
+        const auto proceeded = reinterpret_cast<const u8 *>(pfor->decodeArray(
+            reinterpret_cast<const u32 *const>(head), consumed /*dummy*/,
+            buffer, consumed /*as len_acc*/));
         std::copy(buffer, buffer + len_acc, out + out_consumed);
         in_consumed += proceeded - head;
         out_consumed += len_acc;
       }
     }
 
-    if (i == n_lists) {
+    in_consumed = ((in_consumed + 31u) / 32u) * 32u;
+    if (i == num_inner_lists) {
       break;
-    } else {
-      in_consumed = ((in_consumed + 31u) / 32u) * 32u;
     }
   }
 }
 
 template <
     typename Func /*(unpacked_datum, local_offset, global_idx, local_idx)*/>
-static void foreach (const u8 *__restrict const in, const u32 n_lists, Func f) {
-  alignas(32) u32 buffer[100000]; // TODO: must be unused
-
-  u32 in_consumed = 0;
-  a32_vector<u32> offsets(n_lists + 1, 0); // TODO
-  in_consumed += single::decode(in, n_lists + 1, offsets.data());
+static void foreach (const u8 *__restrict const in, const u32 num_inner_lists,
+                     Func f) {
+  alignas(32) u32 buffer[100000];               // TODO: must be unused
+  a32_vector<u32> offsets(num_inner_lists + 1); // TODO
+  u32 in_consumed = single::decode(in, num_inner_lists + 1, offsets.data());
   in_consumed = ((in_consumed + 31u) / 32u) * 32u;
 
   u32 i = 0;
@@ -175,7 +164,6 @@ static void foreach (const u8 *__restrict const in, const u32 n_lists, Func f) {
     auto head = in + in_consumed;
     u32 len = offsets[i + 1] - offsets[i];
     if (len > THRESHOLD) {
-
       in_consumed +=
           single::foreach (head, len,
                            std::bind(f, std::placeholders::_1, offsets[i], i,
@@ -185,7 +173,7 @@ static void foreach (const u8 *__restrict const in, const u32 n_lists, Func f) {
       u32 acc_start = i;
       u32 len_acc = 0;
       while (true) {
-        if ((len >= THRESHOLD && len_acc >= 256u) || i == n_lists) {
+        if ((len >= THRESHOLD && len_acc >= 256u) || i == num_inner_lists) {
           break;
         }
         len = offsets[i + 1] - offsets[i];
@@ -201,10 +189,9 @@ static void foreach (const u8 *__restrict const in, const u32 n_lists, Func f) {
         //        consumed /*dummy*/, buffer, consumed /*as len_acc*/,
         //        bind(f, std::placeholders::_1, i /*dummy*/, i /*wrong*/,
         //             std::placeholders::_2) /*temporarily ignored*/));
-        const auto proceeded =
-            reinterpret_cast<const u8 *__restrict>(pfor->decodeArray(
-                reinterpret_cast<const u32 *__restrict const>(head),
-                consumed /*dummy*/, buffer, consumed /*as len_acc*/));
+        const auto proceeded = reinterpret_cast<const u8 *>(pfor->decodeArray(
+            reinterpret_cast<const u32 *const>(head), consumed /*dummy*/,
+            buffer, consumed /*as len_acc*/));
 
         const auto this_offset = offsets[acc_start];
         for (u32 j = acc_start; j < i; ++j) { // src
@@ -218,10 +205,9 @@ static void foreach (const u8 *__restrict const in, const u32 n_lists, Func f) {
       }
     }
 
-    if (i == n_lists) {
+    in_consumed = ((in_consumed + 31u) / 32u) * 32u;
+    if (i == num_inner_lists) {
       break;
-    } else {
-      in_consumed = ((in_consumed + 31u) / 32u) * 32u;
     }
   }
 }

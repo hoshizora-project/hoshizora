@@ -29,17 +29,7 @@ void main(int argc, char *argv[]) {
   debug::report("started", "loaded");
   debug::report("loaded", "converted");
   debug::report("converted", "done");
-  loop::quit();
-
-  compress::a32_vector<u32> ints;
-  ints.reserve(3000001);
-  compress::a32_vector<u32> offsets = {0, 1000000, 2000000, 3000001};
-  for (u32 j = 0; j < 3; ++j) {
-    for (u32 i = 0; i < 1000000; ++i) {
-      ints.emplace_back(i);
-    }
-  }
-  ints.emplace_back(0);
+  // loop::quit();
 
   /*
   compress::a32_vector<u8> compressed(6000000);

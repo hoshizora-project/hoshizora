@@ -5,9 +5,9 @@
 #include "hoshizora/core/util/includes.h"
 
 namespace hoshizora::loop {
-ThreadPool pool;
+// ThreadPool pool;
 
-static void quit() { pool.quit(); }
+// static void quit() { pool.quit(); }
 
 template <
     class
@@ -49,6 +49,7 @@ static inline void each_thread(const u32 *const boundaries, Func f) {
   }
 }
 
+/*
 template <class Func>
 static inline void each_thread0(const u32 *const boundaries, Func f) {
   auto tasks = new std::vector<std::function<void()>>();
@@ -61,5 +62,6 @@ static inline void each_thread0(const u32 *const boundaries, Func f) {
   }
   pool.push_tasks(tasks);
 }
+ */
 } // namespace hoshizora::loop
 #endif // HOSHIZORA_LOOP_H
