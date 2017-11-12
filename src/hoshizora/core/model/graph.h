@@ -202,7 +202,7 @@ struct Graph {
       const auto num_srcs = upper - lower;
       const auto estimated_size = compress::multiple::estimate(
           _tmp_out_indices, out_offsets.data[thread_id], num_srcs);
-      const auto indices = mem::malloc<u8>(estimated_size, numa_id);
+      const auto indices = mem::calloc<u8>(estimated_size, numa_id);
       compress::multiple::encode(_tmp_out_indices, out_offsets.data[thread_id],
                                  num_srcs, indices);
 

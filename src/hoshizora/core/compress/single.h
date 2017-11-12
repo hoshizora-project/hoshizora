@@ -35,7 +35,7 @@ static u32 encode(const u32 *__restrict const in, const u32 length,
     alignas(32) u32 xs[LENGTH];
     for (u32 i = 0; i < n_blocks; i++) {
       const auto curr =
-          _mm256_load_si256(reinterpret_cast<__m256icpc>(in + in_offset));
+          _mm256_loadu_si256(reinterpret_cast<__m256icpc>(in + in_offset));
       const auto diff = _mm256_sub_epi32(curr, prev);
 
       _mm256_store_si256(reinterpret_cast<__m256ipc>(xs),

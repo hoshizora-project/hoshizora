@@ -155,7 +155,7 @@ template <
 static void foreach (const u8 *__restrict const in, const u32 num_inner_lists,
                      Func f) {
   alignas(32) u32 buffer[100000];               // TODO: must be unused
-  a32_vector<u32> offsets(num_inner_lists + 1); // TODO
+  a32_vector<u32> offsets((num_inner_lists + 1u + 31u) / 32u * 32u); // TODO
   u32 in_consumed = single::decode(in, num_inner_lists + 1, offsets.data());
   in_consumed = ((in_consumed + 31u) / 32u) * 32u;
 
@@ -168,6 +168,7 @@ static void foreach (const u8 *__restrict const in, const u32 num_inner_lists,
           single::foreach (head, len,
                            std::bind(f, std::placeholders::_1, offsets[i], i,
                                      std::placeholders::_2));
+    }
       i++;
     } else {
       u32 acc_start = i;
