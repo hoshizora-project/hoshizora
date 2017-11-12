@@ -168,7 +168,6 @@ static void foreach (const u8 *__restrict const in, const u32 num_inner_lists,
           single::foreach (head, len,
                            std::bind(f, std::placeholders::_1, offsets[i], i,
                                      std::placeholders::_2));
-    }
       i++;
     } else {
       u32 acc_start = i;
