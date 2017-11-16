@@ -14,6 +14,21 @@
 #include "hoshizora/core/util/loop.h"
 
 namespace hoshizora {
+/*
+ * #blocks = 2
+ * data:       [3 | 8 | 2 | 3 | 3 | 6 | 4]
+ *             ^0             ^4      ^6 ^7
+ * offsets:    [0 | 4 | 6 | 7]
+ *              ^0  ^1      ^3
+ * boundaries: [0 | 1 | 3]
+ *
+ * for {
+ *   (lower, upper) <- boundaries // (0, 1)
+ *   i <- offsets[lower] until offsets[upper] // 0 until 4
+ * } {
+ *   data[i] // 3, 8, 2, 3
+ * }
+ */
 template <class ID, class VProp, class EProp, class VData, class EData,
           bool IsDirected = true>
 struct Graph {
