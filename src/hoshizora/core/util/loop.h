@@ -39,7 +39,7 @@ template <class Func /*(thread_id, numa_id, lower, upper, acc_num_srcs)*/>
 static inline void each_thread(const u32 *const boundaries, Func f) {
   auto acc_num_srcs = 0;
   for (u32 thread_id = 0; thread_id < num_threads; ++thread_id) {
-    const u32 numa_id = mock::thread_to_numa(0);
+    const u32 numa_id = mock::thread_to_numa(thread_id);
     const auto lower = boundaries[thread_id];
     const auto upper = boundaries[thread_id + 1];
     const auto num_inner_vertices = upper - lower;
