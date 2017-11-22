@@ -39,7 +39,7 @@ static inline void init_allocators() {
   }
 }
 #endif
-}
+} // namespace mem
 
 static inline void init() {
   debug::init_logger();
