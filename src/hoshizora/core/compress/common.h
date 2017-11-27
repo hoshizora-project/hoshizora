@@ -49,9 +49,13 @@ constexpr u32 shift8l(const u8 count) {
   return x | x << 8u | x << 16u | x << 24u;
 }
 
-constexpr u32 shift32r(const u8 count) { return count < 32 ? 0xFFFFFFFFu >> count : 0; }
+constexpr u32 shift32r(const u8 count) {
+  return count < 32 ? 0xFFFFFFFFu >> count : 0;
+}
 
-constexpr u32 shift32l(const u8 count) { return count < 32 ? 0xFFFFFFFFu << count : 0; }
+constexpr u32 shift32l(const u8 count) {
+  return count < 32 ? 0xFFFFFFFFu << count : 0;
+}
 
 alignas(32) constexpr u32 mask8r[9][8] = {
     {shift8r(8), shift8r(8), shift8r(8), shift8r(8), shift8r(8), shift8r(8),

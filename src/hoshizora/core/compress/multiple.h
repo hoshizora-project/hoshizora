@@ -154,8 +154,8 @@ template <
     typename Func /*(unpacked_datum, local_offset, global_idx, local_idx)*/>
 static void foreach (const u8 *__restrict const in, const u32 num_inner_lists,
                      Func f) {
-  alignas(32) u32 buffer[100000];               // TODO: must be unused
-  a32_vector<u32> offsets((num_inner_lists + 1u + 31u) / 32u * 32u); // TODO
+  alignas(32) u32 buffer[100000]; // TODO: must be unused
+  std::vector<u32> offsets((num_inner_lists + 1u + 31u) / 32u * 32u); // TODO
   u32 in_consumed = single::decode(in, num_inner_lists + 1, offsets.data());
   in_consumed = ((in_consumed + 31u) / 32u) * 32u;
 
@@ -182,25 +182,15 @@ static void foreach (const u8 *__restrict const in, const u32 num_inner_lists,
       }
       {
         size_t consumed = len_acc;
-        // FIXME
-        // const auto proceeded =
-        //    reinterpret_cast<const u8 *__restrict>(pfor->mapArray(
-        //        reinterpret_cast<const u32 *__restrict const>(head),
-        //        consumed /*dummy*/, buffer, consumed /*as len_acc*/,
-        //        bind(f, std::placeholders::_1, i /*dummy*/, i /*wrong*/,
-        //             std::placeholders::_2) /*temporarily ignored*/));
-        const auto proceeded = reinterpret_cast<const u8 *>(pfor->decodeArray(
-            reinterpret_cast<const u32 *const>(head), consumed /*dummy*/,
-            buffer, consumed /*as len_acc*/));
-
         const auto this_offset = offsets[acc_start];
-        for (u32 j = acc_start; j < i; ++j) { // src
-          for (u32 start = offsets[j] - this_offset,
-                   end = offsets[j + 1] - this_offset, k = start;
-               k < end; ++k) {
-            f(buffer[k], start, j, k - start);
-          }
-        }
+        u32 k = 0;
+
+        // FIXME
+        const auto proceeded = reinterpret_cast<const u8 *__restrict>(
+            pfor->mapArray(reinterpret_cast<const u32 *__restrict const>(head),
+                           consumed /*dummy*/, buffer, consumed /*as len_acc*/,
+                           f, offsets, acc_start, i, k));
+
         in_consumed += proceeded - head;
       }
     }
