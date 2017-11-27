@@ -33,8 +33,8 @@ scan-debug:
 
 .PHONY: scan-release
 scan-release:
-	mkdir -p ${DEBUG_BUILD_DIR}
-	cd ${DEBUG_BUILD_DIR} && \
+	mkdir -p ${RELEASE_BUILD_DIR}
+	cd ${RELEASE_BUILD_DIR} && \
 		export CXX=clang++ && \
 		scan-build cmake -DCMAKE_BUILD_TYPE=Release .. && \
 		scan-build make

@@ -64,7 +64,6 @@ static u32 encode(const u32 *__restrict const in,
       break;
     }
   }
-
   return out_consumed;
 }
 

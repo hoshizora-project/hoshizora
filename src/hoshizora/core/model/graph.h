@@ -289,7 +289,7 @@ struct Graph {
     loop::each_thread(out_boundaries, [&](u32 thread_id, u32 numa_id, ID lower,
                                           ID upper, ID acc_num_srcs) {
       const auto num_inner_vertices = upper - lower;
-      v_data.add(mem::malloc<VData>(num_inner_vertices, thread_id),
+      v_data.add(mem::malloc<VData>(num_inner_vertices, numa_id),
                  num_inner_vertices);
     });
   }
@@ -312,9 +312,7 @@ struct Graph {
       const auto start = out_offsets(lower, thread_id);
       const auto end = out_offsets(upper, thread_id);
       const auto num_inner_edges = end - start;
-      e_data.add(
-          mem::malloc<VData>(num_inner_edges, thread_id /*should be numa_id*/),
-          num_inner_edges);
+      e_data.add(mem::malloc<VData>(num_inner_edges, numa_id), num_inner_edges);
     });
   }
 

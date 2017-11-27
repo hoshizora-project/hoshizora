@@ -27,7 +27,7 @@ static u32 encode(const u32 *__restrict const in, const u32 length,
     const u32 n_flag_blocks_align32 = ((n_flag_blocks + 31u) / 32u) * 32u;
     out_offset += n_flag_blocks_align32;
 
-    a32_vector<u8> flags(n_blocks + 1u); // TODO: w/o vector
+    a32_vector<u8> flags(n_blocks + 1u, 0); // TODO: w/o vector
 
     u8 n_used_bits = 0;
     auto prev = _mm256_setzero_si256();
@@ -401,7 +401,7 @@ static u32 decode(const u8 *__restrict const in, const u32 length,
     const u32 n_flag_blocks_align32 = ((n_flag_blocks + 31u) / 32u) * 32u;
     in_offset += n_flag_blocks_align32;
 
-    a32_vector<u8> flags(n_blocks + 1u);
+    a32_vector<u8> flags(n_blocks + 1u, 0);
     const u32 N = n_flag_blocks / YMM_BYTE;
     for (u32 i = 0; i < N; i++) {
       const auto reg =
@@ -496,7 +496,7 @@ static u32 foreach (const hoshizora::u8 *__restrict in, const u32 length,
     const u32 n_flag_blocks_align32 = ((n_flag_blocks + 31u) / 32u) * 32u;
     in_offset += n_flag_blocks_align32;
 
-    a32_vector<u8> flags(n_blocks + 1u);
+    a32_vector<u8> flags(n_blocks + 1u, 0);
     const u32 N = n_flag_blocks / YMM_BYTE;
     for (u32 i = 0; i < N; i++) {
       const auto reg =
