@@ -107,7 +107,7 @@ static u32 estimate(const u32 *__restrict const in,
  */
 static void decode(const u8 *const __restrict in, const u32 num_inner_lists,
                    u32 *__restrict const out, u32 *__restrict const offsets) {
-  alignas(32) u32 buffer[100000]; // TODO: must be unused
+  alignas(32) u32 buffer[100000] = {}; // TODO: must be unused
   u32 in_consumed = single::decode(in, num_inner_lists + 1u, offsets);
   in_consumed = ((in_consumed + 31u) / 32u) * 32u;
   u32 out_consumed = 0;
@@ -153,7 +153,7 @@ template <
     typename Func /*(unpacked_datum, local_offset, global_idx, local_idx)*/>
 static void foreach (const u8 *__restrict const in, const u32 num_inner_lists,
                      Func f) {
-  alignas(32) u32 buffer[100000]; // TODO: must be unused
+  alignas(32) u32 buffer[100000] = {}; // TODO: must be unused
   std::vector<u32> offsets((num_inner_lists + 1u + 31u) / 32u * 32u); // TODO
   u32 in_consumed = single::decode(in, num_inner_lists + 1, offsets.data());
   in_consumed = ((in_consumed + 31u) / 32u) * 32u;
@@ -181,7 +181,6 @@ static void foreach (const u8 *__restrict const in, const u32 num_inner_lists,
       }
       {
         size_t consumed = len_acc;
-        const auto this_offset = offsets[acc_start];
         u32 k = 0;
 
         // FIXME
