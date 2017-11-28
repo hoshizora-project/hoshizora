@@ -153,8 +153,7 @@ template <
     typename Func /*(unpacked_datum, local_offset, global_idx, local_idx)*/>
 static void foreach (const u8 *__restrict const in, const u32 num_inner_lists,
                      Func f) {
-  alignas(32) u32 buffer[100000] = {}; // TODO: must be unused
-  std::vector<u32> offsets((num_inner_lists + 1u + 31u) / 32u * 32u); // TODO
+  a32_vector<u32> offsets((num_inner_lists + 1u + 31u) / 32u * 32u, 0); // TODO
   u32 in_consumed = single::decode(in, num_inner_lists + 1, offsets.data());
   in_consumed = ((in_consumed + 31u) / 32u) * 32u;
 
@@ -186,8 +185,8 @@ static void foreach (const u8 *__restrict const in, const u32 num_inner_lists,
         // FIXME
         const auto proceeded = reinterpret_cast<const u8 *__restrict>(
             pfor->mapArray(reinterpret_cast<const u32 *__restrict const>(head),
-                           consumed /*dummy*/, buffer, consumed /*as len_acc*/,
-                           f, offsets, acc_start, i, k));
+                           consumed /*dummy*/, consumed /*as len_acc*/,
+                           f, offsets.data(), acc_start, i, k));
 
         in_consumed += proceeded - head;
       }
