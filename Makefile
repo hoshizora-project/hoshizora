@@ -50,7 +50,7 @@ clean-debug:
 
 .PHONY: clean-release
 clean-release:
-	rm -rf ${BUILD_DIR}
+	rm -rf ${RELEASE_BUILD_DIR}
 
 .PHONY: clean
 clean: clean-debug clean-release
