@@ -4,3 +4,6 @@
 [submodule "src/FastPFor"]
 	path = src/FastPFor
 	url = git@github.com:amaya382/FastPFor.git
+[submodule "src/spdlog"]
+	path = src/spdlog
+	url = git@github.com:gabime/spdlog.git
