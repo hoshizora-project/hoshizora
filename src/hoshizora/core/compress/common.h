@@ -6,7 +6,7 @@
 #include <immintrin.h>
 #include <vector>
 
-#include "external/FastPFor/headers/codecfactory.h"
+#include "FastPFor/headers/codecfactory.h"
 #include "hoshizora/core/util/includes.h"
 
 namespace hoshizora::compress {

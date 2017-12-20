@@ -14,7 +14,7 @@
 #include <unordered_map>
 #include <vector>
 #ifdef __linux__
-#include "external/pcm/cpucounters.h"
+#include "pcm/cpucounters.h"
 #include <sched.h>
 #elif __APPLE__
 #include <cpuid.h>
@@ -23,7 +23,7 @@
 #ifdef SUPPORT_NUMA
 #include <numa.h>
 #endif
-#include "external/spdlog/spdlog.h"
+#include "spdlog/spdlog.h"
 
 namespace hoshizora {
 using u8 = uint8_t;
