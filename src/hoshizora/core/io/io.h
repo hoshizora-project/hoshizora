@@ -29,16 +29,16 @@ struct IO {
   }
 
   //        template<class Graph>
-  static vector<pair<u32, u32>> fromFile0(const std::string &file_name) {
-    ifstream ifs(file_name, ios::in);
-    istreambuf_iterator<char> it(ifs);
-    istreambuf_iterator<char> last;
-    string data(it, last);
+  static std::vector<std::pair<u32, u32>> fromFile0(const std::string &file_name) {
+    std::ifstream ifs(file_name, std::ios::in);
+    std::istreambuf_iterator<char> it(ifs);
+    std::istreambuf_iterator<char> last;
+    std::string data(it, last);
 
     auto start = 0ul;
     auto first = 0ul, second = 0ul;
 
-    vector<pair<u32, u32>> edge_list;
+    std::vector<std::pair<u32, u32>> edge_list;
     edge_list.reserve(5105039); // TODO
 
     for (auto &datum : data) {
@@ -59,7 +59,7 @@ struct IO {
           first = static_cast<u32>(std::atoi(data.data() + start));
         } else {
           second = static_cast<u32>(std::atoi(data.data() + start));
-          edge_list.emplace_back(make_pair(first, second));
+          edge_list.emplace_back(std::make_pair(first, second));
         }
         is_first = !is_first;
         start = i + 1;

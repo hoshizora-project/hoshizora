@@ -36,16 +36,47 @@ template <class Kernel> struct BulkSyncGASExecutor : Executor<Kernel> {
     curr_graph->set_e_data(true);
   }
 
-  template <class Func> inline void push_tasks(Func f, ID *boundaries) {
+  //template <class Func> inline void push_tasks(Func f, ID *boundaries) {
+  //  auto tasks = new std::vector<std::function<void()>>();
+  //  loop::each_thread(boundaries, [&](u32 thread_id, u32 numa_id, u32 lower,
+  //                                    u32 upper, ID acc_num_srcs) {
+  //    tasks->emplace_back([=, &f]() {
+  //      for (ID i = lower; i < upper; ++i) {
+  //        f(i, thread_id, numa_id);
+  //      }
+  //    });
+  //  });
+  //  thread_pool.push_tasks(tasks);
+  //}
+
+  template<class Func>
+  inline void push_tasks(Func f, ID *boundaries) {
     auto tasks = new std::vector<std::function<void()>>();
-    loop::each_thread(boundaries, [&](u32 thread_id, u32 numa_id, u32 lower,
-                                      u32 upper, ID acc_num_srcs) {
-      tasks->emplace_back([=, &f]() {
-        for (ID i = lower; i < upper; ++i) {
-          f(i, thread_id, numa_id);
-        }
-      });
-    });
+    loop::each_thread(boundaries,
+                      [&](u32 thread_id, u32 numa_id, u32 lower, u32 upper) {
+                        tasks->emplace_back([=, &f]() {
+                          for (ID dst = lower; dst < upper; ++dst) {
+                            f(dst, thread_id);
+                          }
+                        });
+                      });
+    thread_pool.push_tasks(tasks);
+  }
+
+  template<class Func>
+  inline void push_tasks(Func f, ID *boundaries, u32 iter) {
+    auto tasks = new std::vector<std::function<void()>>();
+    loop::each_thread(boundaries,
+                      [&](u32 thread_id, u32 numa_id, u32 lower, u32 upper) {
+                        tasks->emplace_back([=, &f]() {
+                          for (ID dst = lower; dst < upper; ++dst) {
+                            f(dst, thread_id);
+                          }
+                          if (thread_id == num_threads - 1) {
+                            SPDLOG_DEBUG(debug::logger, "fin iter: {}", iter);
+                          }
+                        });
+                      });
     thread_pool.push_tasks(tasks);
   }
 
@@ -85,7 +116,7 @@ template <class Kernel> struct BulkSyncGASExecutor : Executor<Kernel> {
 
       if (iter == 0) {
         push_tasks(
-            [kernel, prev_graph](ID src, u32 thread_id, u32 numa_id) {
+            [kernel, prev_graph](ID src, u32 thread_id/*, u32 numa_id*/) {
               prev_graph->v_data(src, thread_id) =
                   kernel.init(src, *prev_graph);
 
@@ -104,43 +135,79 @@ template <class Kernel> struct BulkSyncGASExecutor : Executor<Kernel> {
       }
 
       // scatter and gather
-      push_tasks(
-          [kernel, prev_graph, curr_graph](ID src, ID dst, u32 thread_id,
-                                           u32 numa_id, u32 local_offset,
-                                           u32 local_idx, u32 global_offset) {
-            const auto forwarded_index =
-                prev_graph
-                    ->forward_indices[global_offset + local_offset + local_idx];
-            curr_graph->e_data(forwarded_index /*, thread_id*/) = kernel.gather(
-                src, dst, prev_graph->e_data(forwarded_index /*, thread_id*/),
-                kernel.scatter(src, dst, prev_graph->v_data(src, thread_id),
-                               *prev_graph),
-                *prev_graph);
-          },
-          prev_graph->out_boundaries, iter, prev_graph->out_indices);
+      //push_tasks(
+      //    [kernel, prev_graph, curr_graph](ID src, ID dst, u32 thread_id,
+      //                                     u32 numa_id, u32 local_offset,
+      //                                     u32 local_idx, u32 global_offset) {
+      //      const auto forwarded_index =
+      //          prev_graph
+      //              ->forward_indices[global_offset + local_offset + local_idx];
+      //      curr_graph->e_data(forwarded_index /*, thread_id*/) = kernel.gather(
+      //          src, dst, prev_graph->e_data(forwarded_index /*, thread_id*/),
+      //          kernel.scatter(src, dst, prev_graph->v_data(src, thread_id),
+      //                         *prev_graph),
+      //          *prev_graph);
+      //    },
+      //    prev_graph->out_boundaries, iter, prev_graph->out_indices);
 
       // sum and apply
-      push_tasks(
-          [kernel, prev_graph, curr_graph](ID dst, ID src, u32 thread_id,
-                                           u32 numa_id, u32 local_offset,
-                                           u32 local_idx, u32 global_offset) {
+      //push_tasks(
+      //    [kernel, prev_graph, curr_graph](ID dst, ID src, u32 thread_id,
+      //                                     u32 numa_id, u32 local_offset,
+      //                                     u32 local_idx, u32 global_offset) {
             // FIXME: each_dst
-            curr_graph->v_data(dst /*, thread_id*/) =
-                kernel.zero(dst, *prev_graph);
-
-            {
-              const auto index = global_offset + local_offset + local_idx;
-              curr_graph->v_data(dst /*, thread_id*/) = kernel.sum(
-                  dst, src, curr_graph->v_data(dst /*, thread_id*/),
-                  curr_graph->e_data(index /*, thread_id*/), *prev_graph);
-            }
+            //curr_graph->v_data(dst /*, thread_id*/) =
+            //    kernel.zero(dst, *prev_graph);
+            //
+            //{
+            //  const auto index = global_offset + local_offset + local_idx;
+            //  curr_graph->v_data(dst /*, thread_id*/) = kernel.sum(
+            //      dst, src, curr_graph->v_data(dst /*, thread_id*/),
+            //      curr_graph->e_data(index /*, thread_id*/), *prev_graph);
+            //}
 
             // FIXME: each_dst
-            curr_graph->v_data(dst /*, thread_id*/) = kernel.apply(
-                dst, prev_graph->v_data(dst /*, thread_id*/),
-                curr_graph->v_data(dst /*, thread_id*/), *prev_graph);
-          },
-          prev_graph->in_boundaries, iter, prev_graph->in_indices);
+            //curr_graph->v_data(dst /*, thread_id*/) = kernel.apply(
+            //    dst, prev_graph->v_data(dst /*, thread_id*/),
+            //    curr_graph->v_data(dst /*, thread_id*/), *prev_graph);
+          //},
+          //prev_graph->in_boundaries, iter, prev_graph->in_indices);
+
+
+      // scatter and gather
+      push_tasks([kernel, prev_graph, curr_graph](ID src, u32 thread_id) {
+        for (ID i = 0, end = prev_graph->out_degrees(src, thread_id); i < end; ++i) {
+          const auto dst = prev_graph->out_neighbors(src, thread_id)[i];
+          const auto index = prev_graph->out_offsets(src, thread_id) + i;
+          const auto forwarded_index = prev_graph->forward_indices[index];
+
+          curr_graph->e_data(forwarded_index/*, thread_id*/)
+              = kernel.gather(src, dst,
+                              prev_graph->e_data(forwarded_index/*, thread_id*/),
+                              kernel.scatter(src, dst, prev_graph->v_data(src, thread_id),
+                                             *prev_graph),
+                              *prev_graph);
+        }
+      }, prev_graph->out_boundaries);
+
+      // sum and apply
+      push_tasks([kernel, curr_graph, prev_graph](ID dst, u32 thread_id) {
+        curr_graph->v_data(dst/*, thread_id*/) = kernel.zero(dst, *prev_graph); // TODO
+        for (ID i = 0, end = prev_graph->in_degrees(dst, thread_id); i < end; ++i) {
+          const auto src = prev_graph->in_neighbors(dst, thread_id)[i];
+          const auto index = prev_graph->in_offsets(dst, thread_id) + i;
+
+          curr_graph->v_data(dst/*, thread_id*/) = kernel.sum(dst, src,
+                                                            curr_graph->v_data(dst/*, thread_id*/),
+                                                            curr_graph->e_data(index/*, thread_id*/),
+                                                            *prev_graph);
+        }
+
+        curr_graph->v_data(dst/*, thread_id*/) = kernel.apply(dst,
+                                                            prev_graph->v_data(dst/*, thread_id*/),
+                                                            curr_graph->v_data(dst/*, thread_id*/),
+                                                            *prev_graph);
+      }, prev_graph->in_boundaries, iter);
     }
 
     thread_pool.quit();

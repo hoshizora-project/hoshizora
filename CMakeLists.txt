@@ -8,7 +8,6 @@ set(CMAKE_CXX_FLAGS_DEBUG "-Wall -O0 -DSPDLOG_DEBUG_ON")
 set(CMAKE_CXX_FLAGS_RELEASE "-O2")
 
 include_directories(src src/spdlog/include)
-add_subdirectory(src/FastPFor)
 
 set(SOURCE_FILES src/hoshizora/main.cpp src/hoshizora/core/model/graph.h src/hoshizora/core/util/includes.h src/hoshizora/core/io/io.h src/hoshizora/app/pagerank.h src/hoshizora/core/executor/bulksync_gas_executor.h src/hoshizora/core/api/kernel.h src/hoshizora/core/executor/executor.h src/hoshizora/core/util/bulksync_thread_pool.h src/hoshizora/core/util/thread_pool.h src/hoshizora/core/util/spin_barrier.h src/hoshizora/core/util/condition_variable_barrier.h src/hoshizora/core/util/numa_allocator.h src/hoshizora/core/util/primitive_includes.h src/hoshizora/core/compress/common.h src/hoshizora/core/compress/single.h src/hoshizora/core/compress/multiple.h src/hoshizora/core/util/loop.h src/hoshizora/core/util/colle.h)
 
@@ -21,4 +20,3 @@ else ()
 endif ()
 
 add_executable(hoshizora ${SOURCE_FILES})
-target_link_libraries(hoshizora FastPFor)

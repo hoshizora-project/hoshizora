@@ -1,5 +1,4 @@
 #include "hoshizora/app/pagerank.h"
-#include "hoshizora/core/compress/multiple.h"
 #include "hoshizora/core/executor/bulksync_gas_executor.h"
 #include "hoshizora/core/io/io.h"
 #include "hoshizora/core/model/graph.h"
