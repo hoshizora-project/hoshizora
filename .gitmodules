@@ -7,3 +7,6 @@
 [submodule "src/pybind11"]
 	path = src/pybind11
 	url = git@github.com:pybind/pybind11.git
+[submodule "src/FastPFor"]
+	path = src/FastPFor
+	url = git@github.com:amaya382/FastPFor.git

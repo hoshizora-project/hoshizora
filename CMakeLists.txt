@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.7)
+cmake_minimum_required(VERSION 3.8)
 project(hoshizora)
 
 #set(CMAKE_CXX_COMPILER clang++) # make infinit loop for some reason
@@ -38,10 +38,14 @@ endif ()
 ## pybind11
 add_subdirectory(src/pybind11)
 
+## FastPFor
+add_subdirectory(src/FastPFor)
+
 
 # cli
 set(HOSHIZORA_CLI hoshizora-cli)
 add_executable(${HOSHIZORA_CLI} ${SOURCES} src/hoshizora/cli.cpp)
+target_link_libraries(${SHOSHIZORA_CLI} FastPFor)
 if (UNIX AND NOT APPLE)
     target_link_libraries(${HOSHIZORA_CLI} numa pthread ${LIB_PCM})
 endif()
@@ -50,3 +54,4 @@ endif()
 # pybind
 set(HOSHIZORA hoshizora)
 pybind11_add_module(${HOSHIZORA} SHARED ${SOURCES} src/hoshizora/pybind.cpp)
+target_link_libraries(${SHOSHIZORA} FastPFor)

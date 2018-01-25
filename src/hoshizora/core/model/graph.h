@@ -326,7 +326,6 @@ struct Graph {
             const auto neighbor = out_neighbors(src, thread_id);
             for (ID i = 0, end = out_degrees(src, thread_id); i < end; ++i) {
               const auto dst = neighbor[i];
-              auto x = out_offsets(src, thread_id) + i;
               forward_indices[out_offsets(src, thread_id) + i] =
                   in_offsets(dst) + counts[dst];
               counts[dst]++;
