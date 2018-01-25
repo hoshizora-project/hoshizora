@@ -7,6 +7,10 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx2 -mlzcnt -g")
 set(CMAKE_CXX_FLAGS_DEBUG "-O0 -Wall -DSPDLOG_DEBUG_ON")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
+set(PYTHON_VERSION 3.6)
+set(PYBIND11_PYTHON_VERSION ${PYTHON_VERSION})
+set(PYTHON_EXECUTABLE python${PYTHON_VERSION})
+
 file(GLOB SOURCES src/hoshizora/**/*.h src/hoshizora/**/**/*.h)
 include_directories(src)
 include_directories(SYSTEM
@@ -22,7 +26,7 @@ if (UNIX AND NOT APPLE)
         src/pcm/pci.cpp
         src/pcm/client_bw.cpp)
     set(LIB_PCM pcm)
-    add_library(${LIB_PCM} SHARED ${PCM_SOURCES})
+    add_library(${LIB_PCM} STATIC ${PCM_SOURCES})
 
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DSUPPORT_NUMA -fopenmp -D_GLIBCXX_PARALLEL")
 else ()
@@ -30,9 +34,19 @@ else ()
 endif ()
 
 
+# dependencies
+## pybind11
+add_subdirectory(src/pybind11)
+
+
 # cli
 set(HOSHIZORA_CLI hoshizora-cli)
-add_executable(${HOSHIZORA_CLI} ${SOURCES} src/hoshizora/main.cpp)
+add_executable(${HOSHIZORA_CLI} ${SOURCES} src/hoshizora/cli.cpp)
 if (UNIX AND NOT APPLE)
     target_link_libraries(${HOSHIZORA_CLI} numa pthread ${LIB_PCM})
 endif()
+
+
+# pybind
+set(HOSHIZORA hoshizora)
+pybind11_add_module(${HOSHIZORA} SHARED ${SOURCES} src/hoshizora/pybind.cpp)

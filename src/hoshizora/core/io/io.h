@@ -29,7 +29,8 @@ struct IO {
   }
 
   //        template<class Graph>
-  static std::vector<std::pair<u32, u32>> fromFile0(const std::string &file_name) {
+  static std::vector<std::pair<u32, u32>>
+  fromFile0(const std::string &file_name) {
     std::ifstream ifs(file_name, std::ios::in);
     std::istreambuf_iterator<char> it(ifs);
     std::istreambuf_iterator<char> last;

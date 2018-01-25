@@ -41,8 +41,7 @@ scan-release:
 
 .PHONY: format
 format:
-	zsh -c 'clang-format -i -style=file src/hoshizora/**/*.h'
-	zsh -c 'clang-format -i -style=file src/hoshizora/main.cpp'
+	zsh -c 'clang-format -i -style=LLVM src/hoshizora/**/*.(h|cpp)'
 
 .PHONY: clean-debug
 clean-debug:

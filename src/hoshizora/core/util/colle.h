@@ -90,24 +90,25 @@ template <class T> struct DiscreteArray {
   }
 };
 
-//template <>
-//template <
+// template <>
+// template <
 //    class
-//    Func /*(unpacked_datum, local_offset, global_idx, local_idx, global_offset)*/>
-//void DiscreteArray<u8>::foreach (u32 thread_id, u32 num_inner_lists,
+//    Func /*(unpacked_datum, local_offset, global_idx, local_idx,
+//    global_offset)*/>
+// void DiscreteArray<u8>::foreach (u32 thread_id, u32 num_inner_lists,
 //                                 Func f) const {
-  // this type manages multiple array in a single array like [0,4,2,1,3] as
-  // [[0,4,2], [1,3]]
-  //const auto global_offset = range[thread_id];
-  //compress::multiple::foreach (
-  //    data[thread_id], num_inner_lists,
-  //    [=, &f](u32 i, u32 local_offset, u32 _global_idx, u32 local_idx) {
-  //      f(i,              // el of array (dst)
-  //        local_offset,   // offset of each inner array
-  //        _global_idx,    // index of inner array (src)
-  //        local_idx,      // index of el in inner array
-  //        global_offset); // offset of array, which is useful for outside
-  //    });
+// this type manages multiple array in a single array like [0,4,2,1,3] as
+// [[0,4,2], [1,3]]
+// const auto global_offset = range[thread_id];
+// compress::multiple::foreach (
+//    data[thread_id], num_inner_lists,
+//    [=, &f](u32 i, u32 local_offset, u32 _global_idx, u32 local_idx) {
+//      f(i,              // el of array (dst)
+//        local_offset,   // offset of each inner array
+//        _global_idx,    // index of inner array (src)
+//        local_idx,      // index of el in inner array
+//        global_offset); // offset of array, which is useful for outside
+//    });
 //}
 } // namespace hoshizora::colle
 #endif // HOSHIZORA_COLLE_H
