@@ -156,7 +156,6 @@ static const u32 num_numa_nodes =
 #else
     1;
 #endif
-static const std::vector<u32> numa_boundaries = {0, 2, 4};
 } // namespace loop
 
 namespace mem {

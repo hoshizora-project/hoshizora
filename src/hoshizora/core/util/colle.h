@@ -4,7 +4,8 @@
 #include "hoshizora/core/util/includes.h"
 #include <vector>
 
-namespace hoshizora::colle {
+namespace hoshizora {
+namespace colle {
 template <class T> static inline numa_vector<T> *make_numa_vector(u32 numa_id) {
 #ifdef SUPPORT_NUMA
   return new numa_vector<T>(*(mem::allocators[numa_id]));
@@ -43,7 +44,7 @@ template <class T> struct DiscreteArray {
 
   // significantly slower than normal index access on a single malloc
   //[[deprecated("Recommended to call with hint")]]
-  T &operator()(u32 index) {
+  T &operator()(u32 index) const {
     // TODO: sequential search may be faster
     const auto n = std::distance(begin(range) + 1,
                                  upper_bound(begin(range), end(range), index));
@@ -110,5 +111,6 @@ template <class T> struct DiscreteArray {
 //        global_offset); // offset of array, which is useful for outside
 //    });
 //}
-} // namespace hoshizora::colle
+} // namespace colle
+} // namespace hoshizora
 #endif // HOSHIZORA_COLLE_H

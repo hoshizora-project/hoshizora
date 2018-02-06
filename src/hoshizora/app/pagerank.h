@@ -41,20 +41,13 @@ template <class Graph> struct PageRankKernel : Kernel<Graph> {
     return (1 - JUMP_PROB) * curr_val + JUMP_PROB / graph.num_vertices;
   }
 
-  std::string result(const Graph &graph) const {
-    /*
-                string res = "{\"nodes\":[";
-                for (ID i = 0; i < graph.num_vertices; i += 1000) {
-                    res = res +
-                            "{\"id\":" +to_string(i) + ", \"pagerank\":" +
-       to_string(graph.v_data[i]) + "},\n";
-                }
-                res = res + "]}";
-
-                */
-    auto res = "";
-
-    return res;
+  std::vector<std::string> result(const Graph &graph) const {
+    std::vector<std::string> results{};
+    results.reserve(graph.num_vertices);
+    for (size_t i = 0; i < graph.num_vertices; ++i) {
+      results.emplace_back(std::to_string(graph.v_data(i)));
+    }
+    return results;
   }
 };
 } // namespace hoshizora

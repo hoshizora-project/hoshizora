@@ -25,7 +25,7 @@ template <class Graph> struct Kernel {
   virtual VData apply(const ID dst, const VData prev_val, const VData curr_val,
                       const Graph &graph) const = 0;
 
-  virtual std::string result(const Graph &graph) const = 0;
+  virtual std::vector<std::string> result(const Graph &graph) const = 0;
 };
 } // namespace hoshizora
 

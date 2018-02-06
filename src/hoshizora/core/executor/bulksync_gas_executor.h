@@ -106,7 +106,7 @@ template <class Kernel> struct BulkSyncGASExecutor : Executor<Kernel> {
     thread_pool.push_tasks(tasks);
   }
 
-  std::string run() {
+  std::vector<std::string> run() {
     for (auto iter = 0u; iter < num_iters; ++iter) {
       SPDLOG_DEBUG(debug::logger, "push iter: {}", iter);
       auto kernel = this->kernel; // FIXME

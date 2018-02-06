@@ -185,8 +185,8 @@ static void foreach (const u8 *__restrict const in, const u32 num_inner_lists,
         // FIXME
         const auto proceeded = reinterpret_cast<const u8 *__restrict>(
             pfor->mapArray(reinterpret_cast<const u32 *__restrict const>(head),
-                           consumed /*dummy*/, consumed /*as len_acc*/,
-                           f, offsets.data(), acc_start, i, k));
+                           consumed /*dummy*/, consumed /*as len_acc*/, f,
+                           offsets.data(), acc_start, i, k));
 
         in_consumed += proceeded - head;
       }

@@ -4,7 +4,8 @@
 #include "hoshizora/core/util/colle.h"
 #include "hoshizora/core/util/includes.h"
 
-namespace hoshizora::loop {
+namespace hoshizora {
+namespace loop {
 // ThreadPool pool;
 
 // static void quit() { pool.quit(); }
@@ -88,5 +89,6 @@ static inline void each_numa(const u32 *const boundaries, Func f) {
     }
   }
 }
-} // namespace hoshizora::loop
+} // namespace loop
+} // namespace hoshizora
 #endif // HOSHIZORA_LOOP_H
