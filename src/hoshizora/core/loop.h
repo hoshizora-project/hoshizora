@@ -1,8 +1,8 @@
 #ifndef HOSHIZORA_LOOP_H
 #define HOSHIZORA_LOOP_H
 
-#include "hoshizora/core/util/colle.h"
-#include "hoshizora/core/util/includes.h"
+#include "hoshizora/core/colle.h"
+#include "hoshizora/core/includes.h"
 
 namespace hoshizora {
 namespace loop {

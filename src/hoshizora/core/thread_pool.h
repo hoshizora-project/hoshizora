@@ -12,7 +12,7 @@
 #elif __APPLE__
 #include <mach/thread_act.h>
 #endif
-#include "hoshizora/core/util/primitive_includes.h"
+#include "hoshizora/core/primitive_includes.h"
 
 namespace hoshizora {
 struct ThreadPool {

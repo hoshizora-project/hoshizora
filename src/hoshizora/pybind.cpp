@@ -1,7 +1,7 @@
 #include "hoshizora/app/pagerank.h"
-#include "hoshizora/core/executor/bulksync_gas_executor.h"
-#include "hoshizora/core/io/io.h"
-#include "hoshizora/core/util/includes.h"
+#include "hoshizora/core/bulksync_gas_executor.h"
+#include "hoshizora/core/io.h"
+#include "hoshizora/core/includes.h"
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 

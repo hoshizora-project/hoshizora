@@ -16,9 +16,9 @@
 #elif __APPLE__
 #include <mach/thread_act.h>
 #endif
-#include "hoshizora/core/util/numa_allocator.h"
-#include "hoshizora/core/util/primitive_includes.h"
-#include "hoshizora/core/util/thread_pool.h"
+#include "hoshizora/core/numa_allocator.h"
+#include "hoshizora/core/primitive_includes.h"
+#include "hoshizora/core/thread_pool.h"
 
 namespace hoshizora {
 template <class T>

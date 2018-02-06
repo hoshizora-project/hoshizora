@@ -9,9 +9,9 @@
 #include <tuple>
 #include <vector>
 
-#include "hoshizora/core/util/colle.h"
-#include "hoshizora/core/util/includes.h"
-#include "hoshizora/core/util/loop.h"
+#include "hoshizora/core/colle.h"
+#include "hoshizora/core/includes.h"
+#include "hoshizora/core/loop.h"
 
 namespace hoshizora {
 /*

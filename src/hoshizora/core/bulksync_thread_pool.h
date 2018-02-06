@@ -14,9 +14,9 @@
 #elif __APPLE__
 #include <mach/thread_act.h>
 #endif
-#include "hoshizora/core/util/condition_variable_barrier.h"
-#include "hoshizora/core/util/includes.h"
-#include "hoshizora/core/util/spin_barrier.h"
+#include "hoshizora/core/condition_variable_barrier.h"
+#include "hoshizora/core/includes.h"
+#include "hoshizora/core/spin_barrier.h"
 
 namespace hoshizora {
 struct BulkSyncThreadPool {

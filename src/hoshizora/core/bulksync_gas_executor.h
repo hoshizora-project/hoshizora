@@ -4,10 +4,10 @@
 #include <string>
 #include <thread>
 
-#include "hoshizora/core/executor/executor.h"
-#include "hoshizora/core/util/bulksync_thread_pool.h"
-#include "hoshizora/core/util/includes.h"
-#include "hoshizora/core/util/loop.h"
+#include "hoshizora/core/executor.h"
+#include "hoshizora/core/bulksync_thread_pool.h"
+#include "hoshizora/core/includes.h"
+#include "hoshizora/core/loop.h"
 
 namespace hoshizora {
 template <class Kernel> struct BulkSyncGASExecutor : Executor<Kernel> {

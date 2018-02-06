@@ -1,7 +1,7 @@
 #ifndef HOSHIZORA_CONDITION_VARIABLE_BARRIER_H
 #define HOSHIZORA_CONDITION_VARIABLE_BARRIER_H
 
-#include "hoshizora/core/util/includes.h"
+#include "hoshizora/core/includes.h"
 #include <condition_variable>
 #include <mutex>
 

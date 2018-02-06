@@ -1,8 +1,8 @@
 #ifndef HOSHIZORA_IO_H
 #define HOSHIZORA_IO_H
 
-#include "hoshizora/core/model/graph.h"
-#include "hoshizora/core/util/includes.h"
+#include "hoshizora/core/graph.h"
+#include "hoshizora/core/includes.h"
 #include <fstream>
 #include <ios>
 #include <iostream>

@@ -1,7 +1,7 @@
 #ifndef HOSHIZORA_SPIN_BARRIER_H
 #define HOSHIZORA_SPIN_BARRIER_H
 
-#include "hoshizora/core/util/includes.h"
+#include "hoshizora/core/includes.h"
 
 namespace hoshizora {
 class spin_barrier {

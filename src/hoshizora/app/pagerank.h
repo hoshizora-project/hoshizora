@@ -1,8 +1,8 @@
 #ifndef HOSHIZORA_PAGERANK_H
 #define HOSHIZORA_PAGERANK_H
 
-#include "hoshizora/core/api/kernel.h"
-#include "hoshizora/core/util/includes.h"
+#include "hoshizora/core/kernel.h"
+#include "hoshizora/core/includes.h"
 #include <string>
 
 namespace hoshizora {

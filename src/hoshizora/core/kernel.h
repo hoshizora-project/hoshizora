@@ -1,7 +1,7 @@
 #ifndef HOSHIZORA_KERNEL_H
 #define HOSHIZORA_KERNEL_H
 
-#include "hoshizora/core/util/includes.h"
+#include "hoshizora/core/includes.h"
 
 namespace hoshizora {
 template <class Graph> struct Kernel {

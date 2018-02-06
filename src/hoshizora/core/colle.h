@@ -1,7 +1,7 @@
 #ifndef HOSHIZORA_COLLE_H
 #define HOSHIZORA_COLLE_H
 
-#include "hoshizora/core/util/includes.h"
+#include "hoshizora/core/includes.h"
 #include <vector>
 
 namespace hoshizora {
