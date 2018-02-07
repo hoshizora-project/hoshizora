@@ -4,8 +4,8 @@
 #include <string>
 #include <thread>
 
-#include "hoshizora/core/executor.h"
 #include "hoshizora/core/bulksync_thread_pool.h"
+#include "hoshizora/core/executor.h"
 #include "hoshizora/core/includes.h"
 #include "hoshizora/core/loop.h"
 
@@ -14,13 +14,13 @@ template <class Kernel> struct BulkSyncGASExecutor : Executor<Kernel> {
   using Graph = typename Kernel::_Graph;
   using ID = typename Kernel::_Graph::_ID;
 
+  Kernel kernel;
+
   Graph *prev_graph;
   Graph *curr_graph;
 
   const ID num_vertices;
   const ID num_edges;
-
-  Kernel kernel;
 
   // TODO
   const u32 num_threads = loop::num_threads;
@@ -28,8 +28,9 @@ template <class Kernel> struct BulkSyncGASExecutor : Executor<Kernel> {
 
   const u32 num_iters;
 
-  explicit BulkSyncGASExecutor(Graph &graph, u32 num_iters)
-      : prev_graph(&graph), curr_graph(&graph),
+  explicit BulkSyncGASExecutor(const Kernel &kernel, Graph &graph,
+                               u32 num_iters)
+      : kernel(kernel), prev_graph(&graph), curr_graph(&graph),
         num_vertices(graph.num_vertices), num_edges(graph.num_edges),
         thread_pool(num_threads), num_iters(num_iters) {
     curr_graph->set_v_data(true);
@@ -129,7 +130,7 @@ template <class Kernel> struct BulkSyncGASExecutor : Executor<Kernel> {
             prev_graph->out_boundaries);
       } else {
         thread_pool.push_task([prev_graph, curr_graph]() {
-          Graph::Next(*prev_graph, *curr_graph);
+          Graph::next(*prev_graph, *curr_graph);
         });
       }
 
@@ -176,6 +177,21 @@ template <class Kernel> struct BulkSyncGASExecutor : Executor<Kernel> {
 
       // scatter and gather
       push_tasks(
+          [&kernel, prev_graph, curr_graph](ID src, u32 thread_id) {
+            for (ID i = 0, end = prev_graph->out_degrees(src, thread_id);
+                 i < end; ++i) {
+              const auto dst = prev_graph->out_neighbors(src, thread_id)[i];
+              const auto index = prev_graph->out_offsets(src, thread_id) + i;
+              const auto forwarded_index = prev_graph->forward_indices[index];
+
+              curr_graph->e_data(forwarded_index /*, thread_id*/) =
+                  kernel.scatter(src, dst, prev_graph->v_data(src, thread_id),
+                                 *prev_graph);
+            }
+          },
+          prev_graph->out_boundaries);
+
+      push_tasks(
           [kernel, prev_graph, curr_graph](ID src, u32 thread_id) {
             for (ID i = 0, end = prev_graph->out_degrees(src, thread_id);
                  i < end; ++i) {
@@ -187,9 +203,7 @@ template <class Kernel> struct BulkSyncGASExecutor : Executor<Kernel> {
                   kernel.gather(
                       src, dst,
                       prev_graph->e_data(forwarded_index /*, thread_id*/),
-                      kernel.scatter(src, dst,
-                                     prev_graph->v_data(src, thread_id),
-                                     *prev_graph),
+                      curr_graph->e_data(forwarded_index /*, thread_id*/),
                       *prev_graph);
             }
           },
@@ -197,7 +211,7 @@ template <class Kernel> struct BulkSyncGASExecutor : Executor<Kernel> {
 
       // sum and apply
       push_tasks(
-          [kernel, curr_graph, prev_graph](ID dst, u32 thread_id) {
+          [&kernel, curr_graph, prev_graph](ID dst, u32 thread_id) {
             curr_graph->v_data(dst /*, thread_id*/) =
                 kernel.zero(dst, *prev_graph); // TODO
             for (ID i = 0, end = prev_graph->in_degrees(dst, thread_id);
@@ -209,7 +223,11 @@ template <class Kernel> struct BulkSyncGASExecutor : Executor<Kernel> {
                   dst, src, curr_graph->v_data(dst /*, thread_id*/),
                   curr_graph->e_data(index /*, thread_id*/), *prev_graph);
             }
+          },
+          prev_graph->in_boundaries, iter);
 
+      push_tasks(
+          [&kernel, curr_graph, prev_graph](ID dst, u32 thread_id) {
             curr_graph->v_data(dst /*, thread_id*/) = kernel.apply(
                 dst, prev_graph->v_data(dst /*, thread_id*/),
                 curr_graph->v_data(dst /*, thread_id*/), *prev_graph);

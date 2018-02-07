@@ -33,14 +33,16 @@ struct BulkSyncThreadPool {
       : num_threads(num_threads), barrier(num_threads) {
     for (u32 thread_id = 0; thread_id < num_threads; ++thread_id) {
       auto queue = new std::queue<std::function<void()>>();
-      queue->push([&, thread_id]() {
+
       // set own thread affinity
 #ifdef __linux__
+      queue->push([&, thread_id]() {
         cpu_set_t cpuset;
         CPU_ZERO(&cpuset);
         CPU_SET(thread_id, &cpuset); // FIXME
         sched_setaffinity(syscall(SYS_gettid), sizeof(cpu_set_t), &cpuset);
 #elif __APPLE__
+      queue->push([&]() {
       // FIXME: not work properly
       // const auto policy = thread_affinity_policy_data_t{
       //        static_cast<i32>(thread_id)
@@ -50,6 +52,7 @@ struct BulkSyncThreadPool {
       //                  (thread_policy_t) &policy,
       //                  THREAD_AFFINITY_POLICY_COUNT);
 #else
+      queue->push([]() {
         debug::logger->info("No thread affinity")
 #endif
       });

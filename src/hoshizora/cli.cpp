@@ -1,36 +1,32 @@
-#include "hoshizora/app/pagerank.h"
-#include "hoshizora/core/bulksync_gas_executor.h"
-#include "hoshizora/core/io.h"
-#include "hoshizora/core/graph.h"
-#include "hoshizora/core/includes.h"
+#include "hoshizora/app/apps.h"
 #include <iostream>
+#include <map>
+#include <set>
 #include <utility>
 
 namespace hoshizora {
 void main(int argc, char *argv[]) {
-  using _Graph = Graph<u32, empty_t, empty_t, f32, f32>;
-  init();
-  const u32 num_iters =
-      argc > 2 ? (u32)std::strtol(argv[2], nullptr, 10) : 1000;
-  debug::logger->info("#numa nodes: {}", loop::num_numa_nodes);
-  debug::logger->info("#threads: {}", loop::num_threads);
-  debug::logger->info("#iters: {}", num_iters);
-  debug::point("started");
-  auto edge_list = IO::fromFile0(argv[1]);
-  debug::point("loaded");
-  auto graph = _Graph::from_edge_list(edge_list.data(), edge_list.size());
-  debug::point("converted");
-  BulkSyncGASExecutor<PageRankKernel<_Graph>> executor(graph, num_iters);
-  const auto result = executor.run();
-  debug::point("done");
-  for (const auto &res : result) {
-    printf("%s\n", res.c_str());
-  }
+  const auto type = std::string(argv[1]);
+  const auto file_name = std::string(argv[2]);
 
-  debug::report("started", "loaded");
-  debug::report("loaded", "converted");
-  debug::report("converted", "done");
-  // loop::quit();
+  init();
+
+  if (type == "pagerank") {
+    const auto num_iters = (u32)std::strtol(argv[3], nullptr, 10);
+    const auto res = pagerank(file_name, num_iters);
+    for (const auto &el : res) {
+      printf("%s\n", el.c_str());
+    }
+  } else if (type == "clustering") {
+    const auto num_clusters_hint = (u32)std::strtol(argv[3], nullptr, 10);
+    const auto threshold = argc > 4 ? std::stof(argv[4]) : 0.00003;
+    auto res = clustering(argv[2], num_clusters_hint, threshold);
+    for (const auto &el : res) {
+      printf("%d\n", el);
+    }
+  } else {
+    printf("'%s' is not specified\n", type.c_str());
+  }
 }
 } // namespace hoshizora
 

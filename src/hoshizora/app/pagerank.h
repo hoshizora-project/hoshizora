@@ -1,8 +1,8 @@
 #ifndef HOSHIZORA_PAGERANK_H
 #define HOSHIZORA_PAGERANK_H
 
-#include "hoshizora/core/kernel.h"
 #include "hoshizora/core/includes.h"
+#include "hoshizora/core/kernel.h"
 #include <string>
 
 namespace hoshizora {
@@ -19,8 +19,7 @@ template <class Graph> struct PageRankKernel : Kernel<Graph> {
     return 1.0;
   }
 
-  EData scatter(const ID src, const ID dst, const VData v_val,
-                const Graph &graph) const {
+  EData scatter(const ID src, const ID dst, const VData v_val, Graph &graph) {
     return v_val / graph.out_degrees(src, nullptr); // TODO: numa_id
   }
 
@@ -32,7 +31,7 @@ template <class Graph> struct PageRankKernel : Kernel<Graph> {
   VData zero(const ID dst, const Graph &graph) const { return 0.0; }
 
   VData sum(const ID src, const ID dst, const VData v_val, const EData e_val,
-            const Graph &graph) const {
+            Graph &graph) {
     return v_val + e_val;
   }
 
