@@ -1,13 +1,8 @@
-# :stars: hoshizora: Fast graph analysis
-Fast graph analysis engine
-
+# :stars: hoshizora: Fast graph analysis engine
 Tutorial is [here](https://github.com/hoshizora-project/tutorial).
 You can try *hoshizora* and [amanogawa](https://github.com/hoshizora-project/amanogawa) on Jupyter on Docker
 
-**:warning: Currently alpha version. Inner structure and APIs might be change a lot**
-
-Experimental optimization is [here](https://github.com/amaya382/hoshizora/tree/experimental).
-Note that experimental branch is unstable.
+(***:warning: Currently alpha version. Inner structure and APIs might be change a lot***)
 
 
 ## :sparkles: Features
@@ -15,6 +10,10 @@ Note that experimental branch is unstable.
   * You can use *hoshizora* as a Python library, C++ library and CLI tool
 * Extremely fast
   * Full native speed
+  * Efficient parallel processing (Can scale to over one hundred cores)
+
+Experimental optimizations are [here](https://github.com/amaya382/hoshizora/tree/experimental).
+Note that experimental branch is unstable.
 
 
 ## :soon: Install
@@ -35,6 +34,7 @@ Prerequisites
 
 #### CLI
 ```sh
+git submodule init && git submodule update
 make release
 ```
 
@@ -59,6 +59,8 @@ result = hz.pagerank(graph_file, num_iters)
 
 
 ## :persevere: WIP
+* [ ] Querying API
+* [ ] Support dynamic graph
 * [ ] APIs for Graph compaction
 * [ ] Out-of-Core processing
 * [ ] Tests
