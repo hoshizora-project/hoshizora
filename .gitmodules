@@ -1,12 +1,12 @@
 [submodule "src/pcm"]
 	path = src/pcm
-	url = git@github.com:opcm/pcm.git
+	url = https://github.com/opcm/pcm.git
 [submodule "src/spdlog"]
 	path = src/spdlog
-	url = git@github.com:gabime/spdlog.git
+	url = https://github.com/gabime/spdlog.git
 [submodule "src/pybind11"]
 	path = src/pybind11
-	url = git@github.com:pybind/pybind11.git
+	url = https://github.com/pybind/pybind11.git
 [submodule "src/FastPFor"]
 	path = src/FastPFor
-	url = git@github.com:amaya382/FastPFor.git
+	url = https://github.com/amaya382/FastPFor.git
