@@ -156,7 +156,7 @@ std::vector<u32> clustering(const std::string &file_name,
     }
 
     auto num_all_edges = graph.num_all_edges;
-    graph = G::from_adjacency_list(adjacency_list);
+    graph = G::from_adjacency_list(adjacency_list); // FIXME: Large memory leak
     graph.e_props = new_edge_weights;
     graph.v_props = v_props;
     graph.num_all_edges = num_all_edges;
