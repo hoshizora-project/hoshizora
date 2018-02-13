@@ -13,8 +13,8 @@ namespace hoshizora::compress::single {
 /*
  * encode
  */
-static u32 encode(const u32 *__restrict const in, const u32 length,
-                  u8 *__restrict const out) {
+u32 encode(const u32 *__restrict const in, const u32 length,
+           u8 *__restrict const out) {
   if (length == 0) {
     return 0;
   }
@@ -125,7 +125,7 @@ static u32 encode(const u32 *__restrict const in, const u32 length,
   return (out_offset + 31u) / 32u * 32u;
 }
 
-static u32 estimate(const u32 *__restrict const in, const u32 length) {
+u32 estimate(const u32 *__restrict const in, const u32 length) {
   if (length == 0) {
     return 0;
   }
@@ -199,8 +199,8 @@ static u32 estimate(const u32 *__restrict const in, const u32 length) {
  * decode
  */
 template <u8 f0, u8 f1, u8 f2, u8 f3, u8 f4, u8 f5, u8 f6>
-static inline u8 ungap(const u8 *__restrict const in, const u32 prev,
-                       u32 *__restrict const out) {
+inline u8 ungap(const u8 *__restrict const in, const u32 prev,
+                u32 *__restrict const out) {
   constexpr u8 o0 = 0;
   constexpr u8 o1 = o0 + (f0 ? 4 : 2);
   constexpr u8 o2 = o1 + (f1 ? 4 : 2);
@@ -386,8 +386,8 @@ const static function<u8(const u8 *__restrict const, const u32,
                    ungap<0, 0, 1, 1, 1, 1, 1>, ungap<1, 0, 1, 1, 1, 1, 1>,
                    ungap<0, 1, 1, 1, 1, 1, 1>, ungap<1, 1, 1, 1, 1, 1, 1>};
 
-static u32 decode(const u8 *__restrict const in, const u32 length,
-                  u32 *__restrict const out) {
+u32 decode(const u8 *__restrict const in, const u32 length,
+           u32 *__restrict const out) {
   if (length == 0) {
     return 0;
   }
@@ -479,8 +479,7 @@ static u32 decode(const u8 *__restrict const in, const u32 length,
 }
 
 template <typename Func /*(unpacked_datum, local_idx)*/>
-static u32 foreach (const hoshizora::u8 *__restrict in, const u32 length,
-                    Func f) {
+u32 foreach (const hoshizora::u8 *__restrict in, const u32 length, Func f) {
   if (length == 0) {
     return 0;
   }

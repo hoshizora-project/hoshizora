@@ -15,9 +15,8 @@ namespace hoshizora::compress::multiple {
  * encode
  */
 // |offsets| should be n_lists + 1
-static u32 encode(const u32 *__restrict const in,
-                  const u32 *__restrict const offsets,
-                  const u32 num_inner_lists, u8 *__restrict const out) {
+u32 encode(const u32 *__restrict const in, const u32 *__restrict const offsets,
+           const u32 num_inner_lists, u8 *__restrict const out) {
   u32 out_consumed = single::encode(offsets, num_inner_lists + 1u, out);
 
   u32 i = 0;
@@ -68,9 +67,8 @@ static u32 encode(const u32 *__restrict const in,
 }
 
 // |offsets| should be n_lists + 1
-static u32 estimate(const u32 *__restrict const in,
-                    const u32 *__restrict const offsets,
-                    const u32 num_inner_lists) {
+u32 estimate(const u32 *__restrict const in,
+             const u32 *__restrict const offsets, const u32 num_inner_lists) {
   u32 out_consumed = single::estimate(offsets, num_inner_lists + 1u);
 
   u32 i = 0;
@@ -105,8 +103,8 @@ static u32 estimate(const u32 *__restrict const in,
 /*
  * decode
  */
-static void decode(const u8 *const __restrict in, const u32 num_inner_lists,
-                   u32 *__restrict const out, u32 *__restrict const offsets) {
+void decode(const u8 *const __restrict in, const u32 num_inner_lists,
+            u32 *__restrict const out, u32 *__restrict const offsets) {
   alignas(32) u32 buffer[100000] = {}; // TODO: must be unused
   u32 in_consumed = single::decode(in, num_inner_lists + 1u, offsets);
   in_consumed = ((in_consumed + 31u) / 32u) * 32u;
@@ -151,8 +149,8 @@ static void decode(const u8 *const __restrict in, const u32 num_inner_lists,
 
 template <
     typename Func /*(unpacked_datum, local_offset, global_idx, local_idx)*/>
-static void foreach (const u8 *__restrict const in, const u32 num_inner_lists,
-                     Func f) {
+void foreach (const u8 *__restrict const in, const u32 num_inner_lists,
+              Func f) {
   a32_vector<u32> offsets((num_inner_lists + 1u + 31u) / 32u * 32u, 0); // TODO
   u32 in_consumed = single::decode(in, num_inner_lists + 1, offsets.data());
   in_consumed = ((in_consumed + 31u) / 32u) * 32u;
@@ -185,8 +183,8 @@ static void foreach (const u8 *__restrict const in, const u32 num_inner_lists,
         // FIXME
         const auto proceeded = reinterpret_cast<const u8 *__restrict>(
             pfor->mapArray(reinterpret_cast<const u32 *__restrict const>(head),
-                           consumed /*dummy*/, consumed /*as len_acc*/,
-                           f, offsets.data(), acc_start, i, k));
+                           consumed /*dummy*/, consumed /*as len_acc*/, f,
+                           offsets.data(), acc_start, i, k));
 
         in_consumed += proceeded - head;
       }
