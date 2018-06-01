@@ -65,3 +65,8 @@ result = hz.pagerank(graph_file, num_iters)
 * [ ] Out-of-Core processing
 * [ ] Tests
 * [ ] Many many applications
+
+
+## :green_heart: Acknowledgement
+This project was supported by IPA (Mito Project)
+
