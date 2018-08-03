@@ -1,13 +1,17 @@
 cmake_minimum_required(VERSION 3.8)
 project(hoshizora)
 
-#set(CMAKE_CXX_COMPILER clang++) # make infinit loop for some reason
+execute_process(COMMAND
+    sh -c "which clang++ | tr -d '\\n'"
+    OUTPUT_VARIABLE CMAKE_CXX_COMPILER)
 set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx2 -mlzcnt -g")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx2 -mlzcnt -g -stdlib=libc++")
 set(CMAKE_CXX_FLAGS_DEBUG "-O0 -Wall -DSPDLOG_DEBUG_ON")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
-set(PYTHON_VERSION 3.6)
+execute_process(COMMAND
+    sh -c "python3 -V 2>&1 | grep -oP '\\d\\.\\d(?=\\.\\d)' | tr -d '\\n'"
+    OUTPUT_VARIABLE PYTHON_VERSION)
 set(PYBIND11_PYTHON_VERSION ${PYTHON_VERSION})
 set(PYTHON_EXECUTABLE python${PYTHON_VERSION})
 
@@ -56,5 +60,5 @@ endif()
 # pybind
 set(HOSHIZORA hoshizora)
 pybind11_add_module(${HOSHIZORA} SHARED ${SOURCES} src/hoshizora/pybind.cpp)
-target_link_libraries(${HOSHIZORA} ${LIB_PCM})
+target_link_libraries(${HOSHIZORA} PRIVATE ${LIB_PCM})
 #target_link_libraries(${HOSHIZORA} PRIVATE numa)
