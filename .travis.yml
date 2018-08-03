@@ -1,0 +1,27 @@
+language: python
+
+matrix:
+  include:
+    - sudo: required
+      services:
+        - docker
+      env: PIP=pip
+
+env:
+  global:
+    - TWINE_USERNAME=amaya
+    - CIBW_SKIP="cp27-* cp33-* cp34-* cp35-* *_i686"
+    - CIBW_MANYLINUX1_X86_64_IMAGE=hoshizora/manylinux1-clang_x86_64:clang5
+    #- CIBW_MANYLINUX1_I686_IMAGE=hoshizora/manylinux1-clang_i686:clang5
+    - CIBW_BEFORE_BUILD="yum update && yum install -y boost148 boost148-filesystem boost148-system numactl-devel && git submodule init && git submodule update && find src/hoshizora -type f -exec sed -i -e 's/sched_getcpu()/0/g' {{}} \;"
+    - CIBW_ENVIRONMENT="CXX=clang++"
+
+script:
+  - pip install cibuildwheel==0.9.1
+  - cibuildwheel --output-dir wheelhouse
+  - |
+    if [[ ${TRAVIS_TAG} ]]; then
+      python3 -m pip install twine
+      python3 -m twine upload wheelhouse/*.whl
+    fi
+
